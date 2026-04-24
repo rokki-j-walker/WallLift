@@ -1,0 +1,438 @@
+from pathlib import Path
+from tkinter import messagebox
+
+import customtkinter as ctk
+
+from app_models import ProcessingStats
+from image_processor import ImageProcessor
+
+
+class ProgressWindow(ctk.CTkToplevel):
+    def __init__(self, root, source_dir: Path, settings, on_back_to_settings=None):
+        super().__init__(root)
+
+        self.root = root
+        self.source_dir = Path(source_dir)
+        self.settings = settings
+        self.on_back_to_settings = on_back_to_settings
+
+        self.processor: ImageProcessor | None = None
+        self.processing_finished = False
+        self.cancel_requested = False
+        self._initial_autosized = False
+
+        self.copied_files: list[str] = []
+        self.processed_files: list[str] = []
+        self.error_files: list[str] = []
+
+        self.title("Обработка изображений")
+        self.resizable(True, True)
+        self.minsize(820, 520)
+        self.protocol("WM_DELETE_WINDOW", self.on_close_attempt)
+
+        self.current_file_var = ctk.StringVar(value="Подготовка...")
+        self.total_progress_var = ctk.StringVar(value="Общий прогресс: 0 из 0, 0%")
+        self.current_progress_var = ctk.StringVar(value="Текущее изображение: 0%")
+        self.state_var = ctk.StringVar(value="Состояние: подготовка")
+
+        self.copied_counter_var = ctk.StringVar(value="Скопировано: 0 / 0, 0%")
+        self.processed_counter_var = ctk.StringVar(value="Обработано: 0 / 0, 0%")
+        self.error_counter_var = ctk.StringVar(value="Ошибки: 0 / 0, 0%")
+
+        self.build_ui()
+        self.after(80, self.autosize_window)
+
+        self.lift()
+        self.focus_force()
+
+        self.start_processing()
+
+    # =========================
+    # UI
+    # =========================
+
+    def build_ui(self):
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(0, weight=1)
+
+        root_frame = ctk.CTkFrame(self, corner_radius=0)
+        root_frame.grid(row=0, column=0, sticky="nsew")
+        root_frame.grid_columnconfigure(0, weight=1)
+        root_frame.grid_rowconfigure(0, weight=1)
+
+        content = ctk.CTkFrame(root_frame)
+        content.grid(row=0, column=0, sticky="nsew", padx=20, pady=20)
+        content.grid_columnconfigure(0, weight=1)
+        content.grid_rowconfigure(9, weight=1)
+
+        ctk.CTkLabel(
+            content,
+            text="Обработка изображений",
+            font=ctk.CTkFont(size=20, weight="bold"),
+        ).grid(row=0, column=0, sticky="w", padx=16, pady=(16, 6))
+
+        ctk.CTkLabel(
+            content,
+            text=f"Папка: {self.source_dir}",
+            anchor="w",
+            justify="left",
+        ).grid(row=1, column=0, sticky="ew", padx=16, pady=(0, 8))
+
+        mode_text = "ИИ-апскейл" if self.settings.use_ai else "Pillow"
+        thread_text = f"{self.settings.max_workers} поток(а/ов)" if self.settings.use_threads else "1 поток"
+
+        ctk.CTkLabel(
+            content,
+            text=f"Режим: {mode_text}; обработка: {thread_text}; цель: {self.settings.min_width}×{self.settings.min_height}",
+            anchor="w",
+            justify="left",
+        ).grid(row=2, column=0, sticky="ew", padx=16, pady=(0, 10))
+
+        ctk.CTkLabel(content, textvariable=self.state_var, anchor="w").grid(
+            row=3, column=0, sticky="ew", padx=16, pady=(0, 8)
+        )
+
+        if self.settings.advanced_monitoring:
+            ctk.CTkLabel(content, textvariable=self.current_file_var, anchor="w").grid(
+                row=4, column=0, sticky="ew", padx=16, pady=(0, 10)
+            )
+
+        ctk.CTkLabel(content, textvariable=self.total_progress_var, anchor="w").grid(
+            row=5, column=0, sticky="ew", padx=16
+        )
+
+        self.total_bar = ctk.CTkProgressBar(content)
+        self.total_bar.grid(row=6, column=0, sticky="ew", padx=16, pady=(4, 12))
+        self.total_bar.set(0)
+
+        ctk.CTkLabel(content, textvariable=self.current_progress_var, anchor="w").grid(
+            row=7, column=0, sticky="ew", padx=16
+        )
+
+        self.current_bar = ctk.CTkProgressBar(content)
+        self.current_bar.grid(row=8, column=0, sticky="ew", padx=16, pady=(4, 16))
+        self.current_bar.set(0)
+
+        self.advanced_frame = ctk.CTkFrame(content)
+        self.advanced_frame.grid(row=9, column=0, sticky="nsew", padx=16, pady=(0, 16))
+        self.advanced_frame.grid_columnconfigure(0, weight=1, uniform="stats")
+        self.advanced_frame.grid_columnconfigure(1, weight=1, uniform="stats")
+        self.advanced_frame.grid_columnconfigure(2, weight=1, uniform="stats")
+        self.advanced_frame.grid_rowconfigure(0, weight=1)
+        self.build_advanced_monitoring(self.advanced_frame)
+
+        if not self.settings.advanced_monitoring:
+            self.advanced_frame.grid_remove()
+
+        self.buttons_frame = ctk.CTkFrame(content, fg_color="transparent")
+        self.buttons_frame.grid(row=10, column=0, sticky="ew", padx=16, pady=(0, 16))
+        self.buttons_frame.grid_columnconfigure(0, weight=1)
+
+        self.pause_button = ctk.CTkButton(
+            self.buttons_frame,
+            text="Пауза",
+            width=130,
+            command=self.toggle_pause,
+        )
+        self.pause_button.grid(row=0, column=1, sticky="e", padx=(0, 10))
+
+        self.cancel_button = ctk.CTkButton(
+            self.buttons_frame,
+            text="Отмена",
+            width=130,
+            fg_color="#8a1f1f",
+            hover_color="#6f1818",
+            command=self.cancel_processing,
+        )
+        self.cancel_button.grid(row=0, column=2, sticky="e")
+
+        self.back_button = ctk.CTkButton(
+            self.buttons_frame,
+            text="Открыть настройки",
+            width=170,
+            command=self.back_to_settings,
+        )
+
+        self.close_button = ctk.CTkButton(
+            self.buttons_frame,
+            text="Закрыть",
+            width=130,
+            command=self.close_all,
+            fg_color="transparent",
+            border_width=1,
+            text_color=("gray10", "gray90"),
+        )
+
+    def build_advanced_monitoring(self, parent):
+        copied_frame = ctk.CTkFrame(parent)
+        copied_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 6), pady=0)
+        copied_frame.grid_columnconfigure(0, weight=1)
+        copied_frame.grid_rowconfigure(1, weight=1)
+
+        processed_frame = ctk.CTkFrame(parent)
+        processed_frame.grid(row=0, column=1, sticky="nsew", padx=6, pady=0)
+        processed_frame.grid_columnconfigure(0, weight=1)
+        processed_frame.grid_rowconfigure(1, weight=1)
+
+        error_frame = ctk.CTkFrame(parent)
+        error_frame.grid(row=0, column=2, sticky="nsew", padx=(6, 0), pady=0)
+        error_frame.grid_columnconfigure(0, weight=1)
+        error_frame.grid_rowconfigure(1, weight=1)
+
+        ctk.CTkLabel(
+            copied_frame,
+            textvariable=self.copied_counter_var,
+            font=ctk.CTkFont(size=14, weight="bold"),
+        ).grid(row=0, column=0, sticky="w", padx=12, pady=(10, 4))
+
+        self.copied_box = ctk.CTkTextbox(copied_frame, height=140, width=240)
+        self.copied_box.grid(row=1, column=0, sticky="nsew", padx=12, pady=(0, 12))
+        self.copied_box.configure(state="disabled")
+
+        ctk.CTkLabel(
+            processed_frame,
+            textvariable=self.processed_counter_var,
+            font=ctk.CTkFont(size=14, weight="bold"),
+        ).grid(row=0, column=0, sticky="w", padx=12, pady=(10, 4))
+
+        self.processed_box = ctk.CTkTextbox(processed_frame, height=140, width=240)
+        self.processed_box.grid(row=1, column=0, sticky="nsew", padx=12, pady=(0, 12))
+        self.processed_box.configure(state="disabled")
+
+        ctk.CTkLabel(
+            error_frame,
+            textvariable=self.error_counter_var,
+            font=ctk.CTkFont(size=14, weight="bold"),
+        ).grid(row=0, column=0, sticky="w", padx=12, pady=(10, 4))
+
+        self.error_box = ctk.CTkTextbox(error_frame, height=140, width=240)
+        self.error_box.grid(row=1, column=0, sticky="nsew", padx=12, pady=(0, 12))
+        self.error_box.configure(state="disabled")
+
+    # =========================
+    # Processing
+    # =========================
+
+    def start_processing(self):
+        self.processor = ImageProcessor(
+            source_dir=self.source_dir,
+            settings=self.settings,
+            callbacks={
+                "status": self.on_status,
+                "total_progress": self.on_total_progress,
+                "current_progress": self.on_current_progress,
+                "file_started": self.on_file_started,
+                "file_copied": self.on_file_copied,
+                "file_processed": self.on_file_processed,
+                "file_error": self.on_file_error,
+                "stats": self.on_stats,
+                "finished": self.on_finished,
+            },
+        )
+        self.processor.start()
+
+    def toggle_pause(self):
+        if not self.processor or self.processing_finished:
+            return
+
+        if self.processor.is_paused():
+            self.processor.resume()
+            self.pause_button.configure(text="Пауза")
+            self.state_var.set("Состояние: обработка продолжается")
+        else:
+            self.processor.pause()
+            self.pause_button.configure(text="Продолжить")
+            self.state_var.set("Состояние: пауза")
+
+    def cancel_processing(self):
+        if not self.processor or self.processing_finished:
+            return
+
+        answer = messagebox.askyesno(
+            "Отмена",
+            "Прекратить обработку?\n\nОкно не закроется. После отмены можно вернуться к настройкам.",
+        )
+
+        if not answer:
+            return
+
+        self.cancel_requested = True
+        self.processor.cancel()
+        self.pause_button.configure(state="disabled")
+        self.cancel_button.configure(state="disabled")
+        self.state_var.set("Состояние: отмена обработки...")
+
+    # =========================
+    # Callbacks from processor
+    # =========================
+
+    def on_status(self, text: str):
+        self.safe_ui(lambda: self.state_var.set(text))
+
+    def on_file_started(self, filename: str):
+        self.safe_ui(lambda: self.current_file_var.set(f"Файл: {filename}"))
+
+    def on_total_progress(self, done: int, total: int, percent: int):
+        def _update():
+            self.total_bar.set(percent / 100)
+            self.total_progress_var.set(f"Общий прогресс: {done} из {total}, {percent}%")
+            self.update_counters(total)
+
+        self.safe_ui(_update)
+
+    def on_current_progress(self, percent: int, text: str = ""):
+        def _update():
+            percent_fixed = max(0, min(100, int(percent)))
+            self.current_bar.set(percent_fixed / 100)
+            if text:
+                self.current_progress_var.set(f"Текущее изображение: {text}")
+            else:
+                self.current_progress_var.set(f"Текущее изображение: {percent_fixed}%")
+
+        self.safe_ui(_update)
+
+    def on_file_copied(self, filename: str):
+        def _update():
+            self.copied_files.append(filename)
+            if self.settings.advanced_monitoring:
+                self.append_textbox(self.copied_box, filename)
+            self.update_counters(self.get_total_count())
+
+        self.safe_ui(_update)
+
+    def on_file_processed(self, filename: str):
+        def _update():
+            self.processed_files.append(filename)
+            if self.settings.advanced_monitoring:
+                self.append_textbox(self.processed_box, filename)
+            self.update_counters(self.get_total_count())
+
+        self.safe_ui(_update)
+
+    def on_file_error(self, filename: str, error: str = ""):
+        def _update():
+            self.error_files.append(filename)
+            if self.settings.advanced_monitoring:
+                short = filename if not error else f"{filename} — ошибка"
+                self.append_textbox(self.error_box, short)
+            self.update_counters(self.get_total_count())
+
+        self.safe_ui(_update)
+
+    def on_stats(self, stats: ProcessingStats):
+        def _update():
+            self.update_counters(stats.total_count)
+
+        self.safe_ui(_update)
+
+    def on_finished(self, cancelled: bool, errors_count: int, result_dir: Path):
+        def _update():
+            self.processing_finished = True
+
+            self.pause_button.grid_remove()
+            self.cancel_button.grid_remove()
+            self.back_button.grid(row=0, column=1, sticky="e", padx=(0, 10))
+            self.close_button.grid(row=0, column=2, sticky="e")
+
+            if cancelled:
+                self.state_var.set("Состояние: обработка отменена")
+            elif errors_count:
+                self.state_var.set(f"Состояние: завершено с ошибками. Ошибок: {errors_count}")
+            else:
+                self.state_var.set("Состояние: завершено успешно")
+
+            self.current_progress_var.set(f"Результат: {result_dir}")
+
+        self.safe_ui(_update)
+
+    # =========================
+    # Helpers
+    # =========================
+
+    def safe_ui(self, func):
+        try:
+            self.after(0, func)
+        except Exception:
+            pass
+
+    def append_textbox(self, box: ctk.CTkTextbox, text: str):
+        box.configure(state="normal")
+        box.insert("end", text + "\n")
+        box.see("end")
+        box.configure(state="disabled")
+
+    def update_counters(self, total: int):
+        copied_count = len(self.copied_files)
+        processed_count = len(self.processed_files)
+        error_count = len(self.error_files)
+
+        copied_percent = int(copied_count / total * 100) if total else 0
+        processed_percent = int(processed_count / total * 100) if total else 0
+        error_percent = int(error_count / total * 100) if total else 0
+
+        self.copied_counter_var.set(f"Скопировано: {copied_count} / {total}, {copied_percent}%")
+        self.processed_counter_var.set(f"Обработано: {processed_count} / {total}, {processed_percent}%")
+        self.error_counter_var.set(f"Ошибки: {error_count} / {total}, {error_percent}%")
+
+    def get_total_count(self) -> int:
+        try:
+            return self.processor.total_count if self.processor else 0
+        except Exception:
+            return len(self.copied_files) + len(self.processed_files) + len(self.error_files)
+
+    def on_close_attempt(self):
+        if self.processing_finished:
+            self.close_all()
+            return
+
+        answer = messagebox.askyesno(
+            "Закрытие",
+            "Обработка ещё идёт.\n\nОтменить обработку и закрыть программу?",
+        )
+
+        if answer:
+            if self.processor:
+                self.processor.cancel()
+            self.close_all()
+
+    def back_to_settings(self):
+        if self.on_back_to_settings:
+            self.on_back_to_settings()
+        else:
+            self.destroy()
+
+    def close_all(self):
+        try:
+            if self.processor and not self.processing_finished:
+                self.processor.cancel()
+        except Exception:
+            pass
+
+        try:
+            self.destroy()
+        finally:
+            try:
+                self.root.destroy()
+            except Exception:
+                pass
+
+    def autosize_window(self):
+        if self._initial_autosized:
+            return
+
+        self.update_idletasks()
+
+        width = max(820, self.winfo_reqwidth() + 24)
+        height = max(520, self.winfo_reqheight() + 24)
+
+        screen_width = self.winfo_screenwidth()
+        screen_height = self.winfo_screenheight()
+
+        width = min(width, screen_width - 80)
+        height = min(height, screen_height - 100)
+
+        x = max(0, int((screen_width - width) / 2))
+        y = max(0, int((screen_height - height) / 2))
+
+        self.geometry(f"{width}x{height}+{x}+{y}")
+        self._initial_autosized = True
