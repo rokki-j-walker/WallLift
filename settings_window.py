@@ -5,6 +5,7 @@ from tkinter import filedialog, messagebox
 import customtkinter as ctk
 
 from app_config import (
+    DISPLAY_NAME,
     DEFAULT_MIN_WIDTH,
     DEFAULT_MIN_HEIGHT,
     DEFAULT_JPEG_QUALITY,
@@ -31,14 +32,18 @@ from settings_storage import (
     open_settings_folder,
     detect_real_esrgan_gpus,
 )
+from ui_icons import get_icon, get_logo
 from ui_helpers import attach_tooltip
+
+
+ICON_BUTTON_SIZE = 46
 
 
 class SettingsWindow(ctk.CTk):
     def __init__(self):
         super().__init__()
 
-        self.title("ImageSizer — настройки")
+        self.title(f"{DISPLAY_NAME} — настройки")
         self.resizable(True, True)
         self.minsize(920, 650)
         self.protocol("WM_DELETE_WINDOW", self.on_close_attempt)
@@ -47,6 +52,7 @@ class SettingsWindow(ctk.CTk):
         self.processing_started = False
         self.initial_settings_snapshot = None
         self._initial_autosized = False
+        self._settings_window_was_maximized = False
 
         self.loaded_settings = self.safe_load_settings()
 
@@ -82,7 +88,6 @@ class SettingsWindow(ctk.CTk):
         self.on_process_mode_changed(autosize=False)
         self.on_auto_style_changed()
 
-        self.initial_settings_snapshot = self.collect_settings_for_json()
         self.after(80, self.autosize_window)
 
     # =========================
@@ -116,6 +121,7 @@ class SettingsWindow(ctk.CTk):
             "ai_tile_size": self.safe_int(self.ai_tile_size_var.get(), int(DEFAULT_AI_TILE_SIZE)),
             "ai_thread_config": self.ai_thread_config_var.get(),
             "ai_cooldown_seconds": self.safe_float(self.ai_cooldown_var.get(), float(DEFAULT_AI_COOLDOWN_SECONDS)),
+            "window_maximized": self.is_window_maximized(),
         }
 
     def save_current_settings_if_needed(self, force: bool = False) -> bool:
@@ -152,11 +158,16 @@ class SettingsWindow(ctk.CTk):
         self.buttons_bar.grid(row=1, column=0, sticky="ew", padx=18, pady=14)
         self.buttons_bar.grid_columnconfigure(0, weight=1)
 
+        header = ctk.CTkFrame(self.scroll, fg_color="transparent")
+        header.grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 16))
+
+        ctk.CTkLabel(header, text="", image=get_logo()).grid(row=0, column=0, sticky="w", padx=(0, 10))
+
         ctk.CTkLabel(
-            self.scroll,
-            text="Настройки обработки изображений",
-            font=ctk.CTkFont(size=22, weight="bold"),
-        ).grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 16))
+            header,
+            text=DISPLAY_NAME,
+            font=ctk.CTkFont(size=24, weight="bold"),
+        ).grid(row=0, column=1, sticky="w")
 
         self.build_folder_section(self.scroll, row=1)
 
@@ -192,12 +203,15 @@ class SettingsWindow(ctk.CTk):
         ctk.CTkLabel(frame, text="Путь:").grid(row=1, column=0, sticky="w", padx=(16, 8), pady=(4, 16))
 
         self.folder_entry = ctk.CTkEntry(frame, textvariable=self.folder_path_var)
+        self.folder_entry.configure(height=ICON_BUTTON_SIZE)
         self.folder_entry.grid(row=1, column=1, sticky="ew", padx=(0, 10), pady=(4, 16))
 
         self.choose_folder_button = ctk.CTkButton(
             frame,
-            text="📁",
-            width=42,
+            text="",
+            image=get_icon("folder"),
+            width=ICON_BUTTON_SIZE,
+            height=ICON_BUTTON_SIZE,
             command=self.choose_folder,
         )
         self.choose_folder_button.grid(row=1, column=2, sticky="e", padx=(0, 8), pady=(4, 16))
@@ -205,8 +219,10 @@ class SettingsWindow(ctk.CTk):
 
         self.open_folder_button = ctk.CTkButton(
             frame,
-            text="↗",
-            width=42,
+            text="",
+            image=get_icon("external_link"),
+            width=ICON_BUTTON_SIZE,
+            height=ICON_BUTTON_SIZE,
             command=self.open_selected_folder,
             fg_color="transparent",
             border_width=1,
@@ -289,9 +305,10 @@ class SettingsWindow(ctk.CTk):
         frame = ctk.CTkFrame(parent)
         frame.grid(row=row, column=0, sticky="ew", pady=(0, 14))
         frame.grid_columnconfigure(0, weight=1)
+        frame.grid_columnconfigure(1, weight=0)
 
         header = ctk.CTkFrame(frame, fg_color="transparent")
-        header.grid(row=0, column=0, sticky="ew", padx=16, pady=(14, 8))
+        header.grid(row=0, column=0, columnspan=2, sticky="ew", padx=16, pady=(14, 8))
         header.grid_columnconfigure(0, weight=1)
 
         ctk.CTkLabel(header, text="Настройки программы", font=ctk.CTkFont(size=16, weight="bold")).grid(
@@ -299,23 +316,26 @@ class SettingsWindow(ctk.CTk):
         )
 
         self.open_settings_button = ctk.CTkButton(
-            header,
-            text="📂",
-            width=42,
+            frame,
+            text="",
+            image=get_icon("folder_settings"),
+            width=ICON_BUTTON_SIZE,
+            height=ICON_BUTTON_SIZE,
             command=open_settings_folder,
             fg_color="transparent",
             border_width=1,
             text_color=("gray10", "gray90"),
         )
-        self.open_settings_button.grid(row=0, column=1, sticky="e")
-        attach_tooltip(self.open_settings_button, "Открыть папку с настройками")
 
         ctk.CTkCheckBox(frame, text="Сохранять последние настройки", variable=self.save_settings_var).grid(
-            row=1, column=0, sticky="w", padx=16, pady=(4, 8)
+            row=1, column=0, columnspan=2, sticky="w", padx=16, pady=(4, 8)
         )
 
         self.settings_path_entry = ctk.CTkEntry(frame, textvariable=self.settings_path_var, state="disabled")
-        self.settings_path_entry.grid(row=2, column=0, sticky="ew", padx=16, pady=(0, 14))
+        self.settings_path_entry.configure(height=ICON_BUTTON_SIZE)
+        self.settings_path_entry.grid(row=2, column=0, sticky="ew", padx=(16, 10), pady=(0, 14))
+        self.open_settings_button.grid(row=2, column=1, sticky="e", padx=(0, 16), pady=(0, 14))
+        attach_tooltip(self.open_settings_button, "Открыть папку с настройками")
 
     def build_mode_section(self, parent, row: int):
         frame = ctk.CTkFrame(parent)
@@ -430,9 +450,11 @@ class SettingsWindow(ctk.CTk):
 
         self.reset_button = ctk.CTkButton(
             parent,
-            text="↺",
+            text="",
+            image=get_icon("reset"),
             command=self.reset_to_defaults,
-            width=42,
+            width=ICON_BUTTON_SIZE,
+            height=ICON_BUTTON_SIZE,
             fg_color="transparent",
             border_width=1,
             text_color=("gray10", "gray90"),
@@ -445,13 +467,20 @@ class SettingsWindow(ctk.CTk):
             text="Закрыть",
             command=self.on_close_attempt,
             width=120,
+            height=ICON_BUTTON_SIZE,
             fg_color="transparent",
             border_width=1,
             text_color=("gray10", "gray90"),
         )
         self.close_button.grid(row=0, column=1, sticky="e", padx=(0, 10))
 
-        self.start_button = ctk.CTkButton(parent, text="Начать обработку", command=self.start_processing, width=170)
+        self.start_button = ctk.CTkButton(
+            parent,
+            text="Начать обработку",
+            command=self.start_processing,
+            width=170,
+            height=ICON_BUTTON_SIZE,
+        )
         self.start_button.grid(row=0, column=2, sticky="e")
 
     # =========================
@@ -493,6 +522,7 @@ class SettingsWindow(ctk.CTk):
             if not self.save_current_settings_if_needed():
                 return
 
+        self.remember_window_state_for_processing()
         self.processing_started = True
         self.withdraw()
 
@@ -513,8 +543,7 @@ class SettingsWindow(ctk.CTk):
         self.progress_window = None
         self.processing_started = False
         self.deiconify()
-        self.lift()
-        self.focus_force()
+        self.after(0, self.restore_window_state_after_processing)
 
     def make_settings(self):
         try:
@@ -621,7 +650,17 @@ class SettingsWindow(ctk.CTk):
             return
 
         current_snapshot = self.collect_settings_for_json()
+        if self.initial_settings_snapshot is None:
+            self.initial_settings_snapshot = current_snapshot
+
         if self.initial_settings_snapshot == current_snapshot:
+            self.destroy()
+            return
+
+        if self.only_window_state_changed(self.initial_settings_snapshot, current_snapshot):
+            if self.save_settings_var.get():
+                if not self.save_current_settings_if_needed(force=True):
+                    return
             self.destroy()
             return
 
@@ -699,6 +738,46 @@ class SettingsWindow(ctk.CTk):
 
         self.geometry(f"{width}x{height}+{x}+{y}")
         self._initial_autosized = True
+        self.after(60, self.restore_saved_window_state)
+        self.after(140, self.capture_initial_settings_snapshot)
+
+    def restore_saved_window_state(self):
+        if bool(self.loaded_settings.get("window_maximized", False)):
+            try:
+                self.state("zoomed")
+            except Exception:
+                pass
+
+    def remember_window_state_for_processing(self):
+        self._settings_window_was_maximized = self.is_window_maximized()
+
+    def restore_window_state_after_processing(self):
+        try:
+            self.state("zoomed" if self._settings_window_was_maximized else "normal")
+        except Exception:
+            pass
+
+        self.lift()
+        self.focus_force()
+
+    def capture_initial_settings_snapshot(self):
+        self.initial_settings_snapshot = self.collect_settings_for_json()
+
+    def is_window_maximized(self) -> bool:
+        try:
+            return self.state() == "zoomed"
+        except Exception:
+            return False
+
+    @staticmethod
+    def only_window_state_changed(old_settings: dict, new_settings: dict) -> bool:
+        old_without_window = dict(old_settings)
+        new_without_window = dict(new_settings)
+
+        old_without_window.pop("window_maximized", None)
+        new_without_window.pop("window_maximized", None)
+
+        return old_without_window == new_without_window
 
     # =========================
     # GPU helpers

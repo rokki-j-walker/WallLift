@@ -3,8 +3,14 @@ from tkinter import messagebox
 
 import customtkinter as ctk
 
+from app_config import DISPLAY_NAME
 from app_models import ProcessingStats
 from image_processor import ImageProcessor
+from ui_helpers import attach_tooltip
+from ui_icons import get_icon, get_logo
+
+
+ICON_BUTTON_SIZE = 46
 
 
 class ProgressWindow(ctk.CTkToplevel):
@@ -25,7 +31,7 @@ class ProgressWindow(ctk.CTkToplevel):
         self.processed_files: list[str] = []
         self.error_files: list[str] = []
 
-        self.title("Обработка изображений")
+        self.title(f"{DISPLAY_NAME} — обработка")
         self.resizable(True, True)
         self.minsize(820, 520)
         self.protocol("WM_DELETE_WINDOW", self.on_close_attempt)
@@ -65,11 +71,16 @@ class ProgressWindow(ctk.CTkToplevel):
         content.grid_columnconfigure(0, weight=1)
         content.grid_rowconfigure(9, weight=1)
 
+        header = ctk.CTkFrame(content, fg_color="transparent")
+        header.grid(row=0, column=0, sticky="w", padx=16, pady=(16, 6))
+
+        ctk.CTkLabel(header, text="", image=get_logo()).grid(row=0, column=0, sticky="w", padx=(0, 10))
+
         ctk.CTkLabel(
-            content,
-            text="Обработка изображений",
+            header,
+            text=f"{DISPLAY_NAME}: обработка",
             font=ctk.CTkFont(size=20, weight="bold"),
-        ).grid(row=0, column=0, sticky="w", padx=16, pady=(16, 6))
+        ).grid(row=0, column=1, sticky="w")
 
         ctk.CTkLabel(
             content,
@@ -130,16 +141,20 @@ class ProgressWindow(ctk.CTkToplevel):
 
         self.pause_button = ctk.CTkButton(
             self.buttons_frame,
-            text="Пауза",
-            width=130,
+            text="",
+            image=get_icon("pause"),
+            width=ICON_BUTTON_SIZE,
+            height=ICON_BUTTON_SIZE,
             command=self.toggle_pause,
         )
         self.pause_button.grid(row=0, column=1, sticky="e", padx=(0, 10))
+        self.pause_tooltip = attach_tooltip(self.pause_button, "Пауза")
 
         self.cancel_button = ctk.CTkButton(
             self.buttons_frame,
             text="Отмена",
             width=130,
+            height=ICON_BUTTON_SIZE,
             fg_color="#8a1f1f",
             hover_color="#6f1818",
             command=self.cancel_processing,
@@ -150,6 +165,7 @@ class ProgressWindow(ctk.CTkToplevel):
             self.buttons_frame,
             text="Открыть настройки",
             width=170,
+            height=ICON_BUTTON_SIZE,
             command=self.back_to_settings,
         )
 
@@ -157,6 +173,7 @@ class ProgressWindow(ctk.CTkToplevel):
             self.buttons_frame,
             text="Закрыть",
             width=130,
+            height=ICON_BUTTON_SIZE,
             command=self.close_all,
             fg_color="transparent",
             border_width=1,
@@ -237,11 +254,13 @@ class ProgressWindow(ctk.CTkToplevel):
 
         if self.processor.is_paused():
             self.processor.resume()
-            self.pause_button.configure(text="Пауза")
+            self.pause_button.configure(image=get_icon("pause"))
+            self.pause_tooltip.text = "Пауза"
             self.state_var.set("Состояние: обработка продолжается")
         else:
             self.processor.pause()
-            self.pause_button.configure(text="Продолжить")
+            self.pause_button.configure(image=get_icon("play"))
+            self.pause_tooltip.text = "Продолжить"
             self.state_var.set("Состояние: пауза")
 
     def cancel_processing(self):

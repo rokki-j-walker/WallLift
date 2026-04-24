@@ -1,6 +1,12 @@
-# ImageSizer
+# WallLift
 
 Локальная утилита для пакетного изменения размера изображений и опционального AI-апскейла.
+
+## Запуск
+
+```powershell
+python walllift.py
+```
 
 ## Real-ESRGAN
 

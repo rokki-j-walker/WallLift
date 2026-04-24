@@ -1,7 +1,10 @@
 import os
+import shutil
 from pathlib import Path
 
-APP_NAME = "ImageSizer"
+OLD_APP_NAME = "ImageSizer"
+APP_NAME = "WallLift"
+DISPLAY_NAME = "WallLift"
 BASE_DIR = Path(__file__).resolve().parent
 
 REAL_ESRGAN_EXE = BASE_DIR / "rnv" / "realesrgan-ncnn-vulkan.exe"
@@ -48,12 +51,37 @@ def get_settings_dir() -> Path:
     appdata = os.getenv("APPDATA")
     if appdata:
         settings_dir = Path(appdata) / APP_NAME
+        old_settings_dir = Path(appdata) / OLD_APP_NAME
     else:
         settings_dir = Path.home() / f".{APP_NAME}"
+        old_settings_dir = Path.home() / f".{OLD_APP_NAME}"
 
+    migrate_settings_dir(old_settings_dir, settings_dir)
     settings_dir.mkdir(parents=True, exist_ok=True)
     return settings_dir
 
 
 def get_settings_file() -> Path:
     return get_settings_dir() / "settings.json"
+
+
+def migrate_settings_dir(old_settings_dir: Path, settings_dir: Path):
+    if old_settings_dir == settings_dir or not old_settings_dir.exists():
+        return
+
+    if not settings_dir.exists():
+        try:
+            old_settings_dir.rename(settings_dir)
+            return
+        except Exception:
+            pass
+
+    old_settings_file = old_settings_dir / "settings.json"
+    settings_file = settings_dir / "settings.json"
+
+    if old_settings_file.exists() and not settings_file.exists():
+        try:
+            settings_dir.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(old_settings_file, settings_file)
+        except Exception:
+            pass
