@@ -1,8 +1,8 @@
 # WallLift
 
-Локальная утилита для пакетного изменения размера изображений и опционального AI-апскейла.
+Local desktop utility for batch image resizing and optional AI upscaling.
 
-## Запуск
+## Run
 
 ```powershell
 python walllift.py
@@ -10,12 +10,12 @@ python walllift.py
 
 ## Real-ESRGAN
 
-AI-апскейл использует стороннюю программу Real-ESRGAN ncnn Vulkan. Она не хранится в этом репозитории.
+AI upscaling uses the third-party Real-ESRGAN ncnn Vulkan application. It is not included in this repository.
 
-Оригинальный репозиторий:
+Original repository:
 https://github.com/xinntao/Real-ESRGAN-ncnn-vulkan
 
-Для работы AI-режима скачайте Windows-сборку Real-ESRGAN ncnn Vulkan и распакуйте ее в папку `rnv/` рядом с файлами проекта так, чтобы путь к исполняемому файлу был:
+To use AI mode, download the Windows build of Real-ESRGAN ncnn Vulkan and extract it into the `rnv/` folder next to the project files, so the executable path is:
 
 ```text
 rnv/realesrgan-ncnn-vulkan.exe
