@@ -27,7 +27,6 @@ from app_config import (
     SUPPORTED_REAL_ESRGAN_RUNTIME_RELEASE,
     get_clip_model_dir,
     get_downloaded_real_esrgan_exe,
-    get_real_esrgan_exe_path,
     get_real_esrgan_tool_dir,
 )
 from ai_assets import (
@@ -1064,7 +1063,7 @@ class SettingsWindow(BaseMainWindow):
         self.after(0, self.restore_window_state_after_processing)
 
     def ensure_real_esrgan_ready(self) -> bool:
-        exe_path = get_real_esrgan_exe_path()
+        exe_path = get_downloaded_real_esrgan_exe()
         if exe_path.is_file() and (exe_path.parent / "models").is_dir():
             return True
 
@@ -1177,7 +1176,7 @@ class SettingsWindow(BaseMainWindow):
         if use_ai:
             if not self.ensure_real_esrgan_ready():
                 return None
-            ai_exe_path = str(get_real_esrgan_exe_path())
+            ai_exe_path = str(get_downloaded_real_esrgan_exe())
 
             if self.auto_style_analysis_var.get() and not self.ensure_clip_model_ready():
                 return None

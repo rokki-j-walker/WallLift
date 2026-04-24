@@ -60,13 +60,6 @@ download them automatically into:
 %APPDATA%\WallLift\ai\tools\realesrgan-ncnn-vulkan
 ```
 
-The old project-local fallback path is still supported if present:
-
-```text
-rnv\realesrgan-ncnn-vulkan.exe
-rnv\models
-```
-
 ## Automatic Style Analysis
 
 When automatic style analysis is enabled, WallLift uses CLIP to classify the image

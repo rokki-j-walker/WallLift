@@ -7,8 +7,6 @@ APP_NAME = "WallLift"
 DISPLAY_NAME = "WallLift"
 BASE_DIR = Path(__file__).resolve().parent
 
-REAL_ESRGAN_EXE = BASE_DIR / "rnv" / "realesrgan-ncnn-vulkan.exe"
-
 REAL_ESRGAN_MODELS_REPO_URL = "https://github.com/xinntao/Real-ESRGAN"
 REAL_ESRGAN_RUNTIME_REPO_URL = "https://github.com/xinntao/Real-ESRGAN-ncnn-vulkan"
 SUPPORTED_REAL_ESRGAN_MODELS_RELEASE = "v0.2.5.0"
@@ -107,13 +105,6 @@ def get_real_esrgan_tool_dir() -> Path:
 
 def get_downloaded_real_esrgan_exe() -> Path:
     return get_real_esrgan_tool_dir() / "realesrgan-ncnn-vulkan.exe"
-
-
-def get_real_esrgan_exe_path() -> Path:
-    downloaded_exe = get_downloaded_real_esrgan_exe()
-    if downloaded_exe.is_file():
-        return downloaded_exe
-    return REAL_ESRGAN_EXE
 
 
 def get_clip_model_dir() -> Path:
