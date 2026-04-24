@@ -667,8 +667,6 @@ class SettingsWindow(BaseMainWindow):
         self.open_settings_button = ctk.CTkButton(
             frame,
             text=self.t("settings.program.open_settings_button"),
-            image=get_icon("folder_settings"),
-            compound="left",
             height=ICON_BUTTON_SIZE,
             command=open_settings_folder,
             fg_color="transparent",
@@ -738,8 +736,6 @@ class SettingsWindow(BaseMainWindow):
         self.ai_settings_button = ctk.CTkButton(
             frame,
             text=self.t("settings.ai.open_button"),
-            image=get_icon("ai"),
-            compound="left",
             command=self.open_ai_dialog,
             height=ICON_BUTTON_SIZE,
             fg_color="transparent",
