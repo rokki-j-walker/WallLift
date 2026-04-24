@@ -10,6 +10,7 @@ env/
 .vscode/
 
 result/
+tmp*/
 rnv/
 *.log
 *.tmp

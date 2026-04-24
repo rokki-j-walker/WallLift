@@ -16,15 +16,19 @@ SUPPORTED_EXTENSIONS = {
 DEFAULT_MIN_WIDTH = 2560
 DEFAULT_MIN_HEIGHT = 1080
 DEFAULT_JPEG_QUALITY = 100
+DEFAULT_OUTPUT_FORMAT = "jpg"
+DEFAULT_OUTPUT_FOLDER_NAME = f"{DISPLAY_NAME}_result"
+OUTPUT_FORMATS = ["keep", "jpg", "png", "webp", "bmp", "tiff"]
 
 SIZE_PRESETS = {
-    "HD 1280×720": (1280, 720),
-    "Full HD 1920×1080": (1920, 1080),
-    "2K / QHD 2560×1440": (2560, 1440),
-    "UWQHD 3440×1440": (3440, 1440),
-    "4K 3840×2160": (3840, 2160),
-    "8K 7680×4320": (7680, 4320),
-    "Указать вручную": None,
+    "hd": ("HD 1280×720", (1280, 720)),
+    "full_hd": ("Full HD 1920×1080", (1920, 1080)),
+    "wfhd": ("WFHD 2560×1080", (2560, 1080)),
+    "qhd": ("2K / QHD 2560×1440", (2560, 1440)),
+    "uwqhd": ("UWQHD 3440×1440", (3440, 1440)),
+    "4k": ("4K 3840×2160", (3840, 2160)),
+    "8k": ("8K 7680×4320", (7680, 4320)),
+    "custom": ("", None),
 }
 
 AI_MODELS = [

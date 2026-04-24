@@ -71,6 +71,30 @@ def _draw_icon(name: str, stroke: str, accent: str) -> Image.Image:
     elif name == "folder_settings":
         _draw_folder(draw, stroke, accent)
         _draw_gear(draw, stroke, 16, 16)
+    elif name == "format":
+        _draw_files(draw, stroke, accent)
+        draw.text((6, 15), "F", fill=accent)
+    elif name == "ai":
+        draw.rounded_rectangle((4, 5, 20, 19), radius=4, outline=stroke, width=2)
+        draw.line([(8, 12), (11, 8), (14, 12), (16, 8)], fill=accent, width=2)
+        draw.line([(8, 12), (8, 16)], fill=accent, width=2)
+        draw.line([(16, 8), (16, 16)], fill=accent, width=2)
+    elif name == "palette":
+        draw.ellipse((4, 4, 20, 20), outline=stroke, width=2)
+        draw.ellipse((8, 8, 10, 10), fill=accent)
+        draw.ellipse((13, 7, 15, 9), fill=accent)
+        draw.ellipse((7, 14, 9, 16), fill=accent)
+        draw.ellipse((14, 14, 17, 17), outline=stroke, width=2)
+    elif name == "files":
+        _draw_files(draw, stroke, accent)
+    elif name == "add_file":
+        _draw_files(draw, stroke, accent)
+        _draw_plus(draw, accent, 17, 17)
+    elif name == "remove_file":
+        _draw_files(draw, stroke, accent)
+        _draw_minus(draw, accent, 17, 17)
+    elif name == "clear":
+        _draw_clear(draw, stroke, accent)
     elif name == "external_link":
         _draw_external_link(draw, stroke, accent)
     elif name == "reset":
@@ -95,6 +119,28 @@ def _draw_external_link(draw: ImageDraw.ImageDraw, stroke: str, accent: str):
     draw.rounded_rectangle((4, 8, 16, 20), radius=2, outline=stroke, width=2)
     draw.line([(10, 14), (19, 5)], fill=accent, width=2)
     draw.line([(14, 5), (19, 5), (19, 10)], fill=accent, width=2)
+
+
+def _draw_files(draw: ImageDraw.ImageDraw, stroke: str, accent: str):
+    draw.rounded_rectangle((5, 4, 15, 16), radius=2, outline=accent, width=2)
+    draw.line([(8, 8), (13, 8)], fill=accent, width=1)
+    draw.rounded_rectangle((9, 8, 19, 20), radius=2, outline=stroke, width=2)
+    draw.line([(12, 12), (17, 12)], fill=stroke, width=1)
+
+
+def _draw_plus(draw: ImageDraw.ImageDraw, accent: str, cx: int, cy: int):
+    draw.line([(cx - 4, cy), (cx + 4, cy)], fill=accent, width=2)
+    draw.line([(cx, cy - 4), (cx, cy + 4)], fill=accent, width=2)
+
+
+def _draw_minus(draw: ImageDraw.ImageDraw, accent: str, cx: int, cy: int):
+    draw.line([(cx - 4, cy), (cx + 4, cy)], fill=accent, width=2)
+
+
+def _draw_clear(draw: ImageDraw.ImageDraw, stroke: str, accent: str):
+    draw.line([(8, 8), (17, 17)], fill=accent, width=2)
+    draw.line([(17, 8), (8, 17)], fill=accent, width=2)
+    draw.rounded_rectangle((5, 5, 20, 20), radius=3, outline=stroke, width=2)
 
 
 def _draw_reset(draw: ImageDraw.ImageDraw, stroke: str, accent: str):

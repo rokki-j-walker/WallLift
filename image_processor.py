@@ -10,19 +10,27 @@ from pathlib import Path
 
 from PIL import Image, ImageOps
 
-from app_config import SUPPORTED_EXTENSIONS
+from app_config import DEFAULT_OUTPUT_FOLDER_NAME, OUTPUT_FORMATS, SUPPORTED_EXTENSIONS
 from app_models import AppSettings, ProcessingStats, ProcessResult
 from style_analyzer import StyleAnalyzer
 
 
 class ImageProcessor:
-    def __init__(self, source_dir: Path, settings: AppSettings, callbacks: dict | None = None):
+    def __init__(
+        self,
+        source_dir: Path,
+        settings: AppSettings,
+        callbacks: dict | None = None,
+        selected_files: list[Path] | None = None,
+    ):
         self.source_dir = Path(source_dir)
         self.settings = settings
         self.callbacks = callbacks or {}
+        self.t = self.callbacks.get("translate", self.translate_fallback)
+        self.selected_files = [Path(file_path) for file_path in selected_files] if selected_files else []
 
-        self.result_dir = self.source_dir / "result"
-        self.result_dir.mkdir(exist_ok=True)
+        self.result_dir = self.get_result_dir()
+        self.result_dir.mkdir(parents=True, exist_ok=True)
 
         self.files = self.find_images()
         self.stats = ProcessingStats(total_count=len(self.files))
@@ -37,6 +45,17 @@ class ImageProcessor:
         self.lock = threading.Lock()
         self.worker_thread: threading.Thread | None = None
         self.style_analyzer = StyleAnalyzer()
+
+    @staticmethod
+    def translate_fallback(key: str, **kwargs) -> str:
+        text = str(key)
+        if not kwargs:
+            return text
+
+        try:
+            return text.format(**kwargs)
+        except Exception:
+            return text
 
     # =========================
     # Worker control
@@ -57,16 +76,16 @@ class ImageProcessor:
 
     def pause(self):
         self.pause_event.clear()
-        self.notify_status("Состояние: пауза")
+        self.notify_status(self.t("processor.state.paused"))
 
     def resume(self):
         self.pause_event.set()
-        self.notify_status("Состояние: обработка продолжается")
+        self.notify_status(self.t("processor.state.resumed"))
 
     def cancel(self):
         self.cancel_event.set()
         self.pause_event.set()
-        self.notify_status("Состояние: отмена обработки...")
+        self.notify_status(self.t("processor.state.cancelling"))
 
         try:
             if self.current_ai_process is not None:
@@ -111,6 +130,13 @@ class ImageProcessor:
     # =========================
 
     def find_images(self) -> list[Path]:
+        if self.selected_files:
+            files = [
+                file_path for file_path in self.selected_files
+                if file_path.is_file() and file_path.suffix.lower() in SUPPORTED_EXTENSIONS
+            ]
+            return sorted(files, key=lambda x: x.name.lower())
+
         if not self.source_dir.exists():
             return []
 
@@ -120,17 +146,25 @@ class ImageProcessor:
         ]
         return sorted(files, key=lambda x: x.name.lower())
 
+    def get_result_dir(self) -> Path:
+        folder_name = (self.settings.output_folder_name or DEFAULT_OUTPUT_FOLDER_NAME).strip()
+        if not folder_name:
+            folder_name = DEFAULT_OUTPUT_FOLDER_NAME
+
+        base_dir = Path(self.settings.output_base_dir) if self.settings.output_base_dir else self.source_dir
+        return base_dir / folder_name
+
     # =========================
     # Main processing
     # =========================
 
     def process_all_images(self):
-        self.notify_status("Состояние: обработка запущена")
+        self.notify_status(self.t("processor.state.started"))
         self.notify_total_progress()
         self.notify_stats()
 
         if not self.files:
-            self.notify_status("Состояние: изображения не найдены")
+            self.notify_status(self.t("processor.state.no_images"))
             self.finish()
             return
 
@@ -141,11 +175,11 @@ class ImageProcessor:
                 self.process_single_thread()
         finally:
             if self.cancel_event.is_set():
-                self.notify_status("Состояние: обработка отменена")
+                self.notify_status(self.t("processor.state.cancelled"))
             elif self.errors:
-                self.notify_status("Состояние: завершено с ошибками")
+                self.notify_status(self.t("processor.state.finished_errors"))
             else:
-                self.notify_status("Состояние: завершено")
+                self.notify_status(self.t("processor.state.finished"))
 
             self.finish()
 
@@ -173,7 +207,7 @@ class ImageProcessor:
 
     def process_with_threads(self):
         max_workers = max(1, int(self.settings.max_workers))
-        self.notify_current_progress(0, f"Многопоточная обработка: {max_workers} поток(а/ов)")
+        self.notify_current_progress(0, self.t("processor.multithread", workers=max_workers))
 
         pending_files = list(self.files)
         futures = {}
@@ -234,19 +268,21 @@ class ImageProcessor:
                 self.call_callback("file_processed", file_path.name)
             elif result.is_error:
                 self.stats.add_error(file_path.name)
-                error_text = (
-                    f"Файл: {file_path.name}\n"
-                    f"Ошибка:\n{result.error}\n"
-                    f"{'-' * 80}\n"
+                error_text = self.t(
+                    "processor.error.file",
+                    filename=file_path.name,
+                    error=result.error,
+                    line="-" * 80,
                 )
                 self.errors.append(error_text)
                 self.call_callback("file_error", file_path.name, result.error or "")
             else:
                 self.stats.add_error(file_path.name)
-                error_text = (
-                    f"Файл: {file_path.name}\n"
-                    f"Ошибка:\nНеизвестный статус обработки: {result.status}\n"
-                    f"{'-' * 80}\n"
+                error_text = self.t(
+                    "processor.error.unknown_status",
+                    filename=file_path.name,
+                    status=result.status,
+                    line="-" * 80,
                 )
                 self.errors.append(error_text)
                 self.call_callback("file_error", file_path.name, error_text)
@@ -265,21 +301,27 @@ class ImageProcessor:
         self.wait_if_paused()
 
         if ui_enabled:
-            self.notify_current_progress(0, "Открытие файла...")
+            self.notify_current_progress(0, self.t("processor.opening_file"))
 
         with Image.open(file_path) as img:
             img = ImageOps.exif_transpose(img)
             original_width, original_height = img.size
 
             if ui_enabled:
-                self.notify_current_progress(20, f"Исходный размер: {original_width}×{original_height}")
+                self.notify_current_progress(
+                    20,
+                    self.t("processor.original_size", width=original_width, height=original_height),
+                )
 
             new_width, new_height = self.calculate_new_size(original_width, original_height)
             resize_needed = new_width != original_width or new_height != original_height
             upscale_needed = new_width > original_width or new_height > original_height
 
             if ui_enabled:
-                self.notify_current_progress(35, f"Целевой размер: {new_width}×{new_height}")
+                self.notify_current_progress(
+                    35,
+                    self.t("processor.target_size", width=new_width, height=new_height),
+                )
 
             if self.cancel_event.is_set():
                 return ProcessResult(status="cancelled")
@@ -290,18 +332,18 @@ class ImageProcessor:
                 output_path = self.make_output_path(file_path, file_path.suffix)
 
                 if ui_enabled:
-                    self.notify_current_progress(70, "Копирование без изменений...")
+                    self.notify_current_progress(70, self.t("processor.copying_unchanged"))
 
                 shutil.copy2(file_path, output_path)
 
                 if ui_enabled:
-                    self.notify_current_progress(100, "Скопировано без изменений")
+                    self.notify_current_progress(100, self.t("processor.copied_unchanged"))
 
                 return ProcessResult(status="copied", output_path=str(output_path))
 
             if self.settings.use_ai and upscale_needed:
                 if ui_enabled:
-                    self.notify_current_progress(45, "ИИ-апскейл Real-ESRGAN...")
+                    self.notify_current_progress(45, self.t("processor.ai_upscale"))
 
                 ai_image_path = self.run_ai_upscale(file_path)
 
@@ -312,25 +354,21 @@ class ImageProcessor:
 
                 with Image.open(ai_image_path) as ai_img:
                     ai_img = ImageOps.exif_transpose(ai_img)
-                    ai_img = self.prepare_for_jpeg(ai_img)
+                    output_format = self.get_output_format(file_path)
 
                     if ui_enabled:
-                        self.notify_current_progress(75, f"Финальный ресайз до {new_width}×{new_height}...")
+                        self.notify_current_progress(
+                            75,
+                            self.t("processor.final_resize", width=new_width, height=new_height),
+                        )
 
                     ai_img = ai_img.resize((new_width, new_height), Image.Resampling.LANCZOS)
-                    output_path = self.make_output_path(file_path, ".jpg")
+                    output_path = self.make_output_path(file_path, self.get_output_extension(file_path, output_format))
 
                     if ui_enabled:
-                        self.notify_current_progress(90, "Сохранение JPG...")
+                        self.notify_current_progress(90, self.t("processor.saving_image", format=output_format.upper()))
 
-                    ai_img.save(
-                        output_path,
-                        format="JPEG",
-                        quality=self.settings.jpeg_quality,
-                        optimize=True,
-                        progressive=True,
-                        subsampling=0,
-                    )
+                    self.save_image(ai_img, output_path, output_format)
 
                 try:
                     Path(ai_image_path).unlink(missing_ok=True)
@@ -338,31 +376,24 @@ class ImageProcessor:
                     pass
 
                 if ui_enabled:
-                    self.notify_current_progress(100, "Готово")
+                    self.notify_current_progress(100, self.t("processor.done"))
 
                 return ProcessResult(status="processed", output_path=str(output_path))
 
             if ui_enabled:
-                self.notify_current_progress(55, "Обычное изменение размера...")
+                self.notify_current_progress(55, self.t("processor.standard_resize"))
 
-            img = self.prepare_for_jpeg(img)
             img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
-            output_path = self.make_output_path(file_path, ".jpg")
+            output_format = self.get_output_format(file_path)
+            output_path = self.make_output_path(file_path, self.get_output_extension(file_path, output_format))
 
             if ui_enabled:
-                self.notify_current_progress(85, "Сохранение JPG...")
+                self.notify_current_progress(85, self.t("processor.saving_image", format=output_format.upper()))
 
-            img.save(
-                output_path,
-                format="JPEG",
-                quality=self.settings.jpeg_quality,
-                optimize=True,
-                progressive=True,
-                subsampling=0,
-            )
+            self.save_image(img, output_path, output_format)
 
             if ui_enabled:
-                self.notify_current_progress(100, "Готово")
+                self.notify_current_progress(100, self.t("processor.done"))
 
             return ProcessResult(status="processed", output_path=str(output_path))
 
@@ -376,7 +407,7 @@ class ImageProcessor:
 
         try:
             model = self.style_analyzer.choose_model_for_image(file_path, self.settings.ai_model)
-            self.notify_current_progress(43, f"Автовыбор модели: {model}")
+            self.notify_current_progress(43, self.t("processor.auto_model", model=model))
             return model
         except Exception:
             return self.settings.ai_model
@@ -385,7 +416,7 @@ class ImageProcessor:
         ai_exe_path = Path(self.settings.ai_exe_path)
 
         if not ai_exe_path.is_file():
-            raise FileNotFoundError(f"Real-ESRGAN EXE не найден:\n{ai_exe_path}")
+            raise FileNotFoundError(self.t("processor.realesrgan_missing", path=ai_exe_path))
 
         temp_dir = Path(tempfile.mkdtemp(prefix="wallpaper_ai_"))
 
@@ -428,22 +459,26 @@ class ImageProcessor:
             self.current_ai_process = None
 
             if self.cancel_event.is_set():
-                raise RuntimeError("Обработка отменена пользователем.")
+                raise RuntimeError(self.t("processor.cancelled_by_user"))
 
             if return_code != 0:
                 raise RuntimeError(
-                    "Real-ESRGAN завершился с ошибкой.\n\n"
-                    f"CMD: {' '.join(cmd)}\n\n"
-                    f"STDOUT:\n{stdout}\n\n"
-                    f"STDERR:\n{stderr}"
+                    self.t(
+                        "processor.realesrgan_failed",
+                        cmd=" ".join(cmd),
+                        stdout=stdout,
+                        stderr=stderr,
+                    )
                 )
 
             if not output_from_ai.exists():
                 raise RuntimeError(
-                    "Real-ESRGAN не создал выходной файл.\n\n"
-                    f"CMD: {' '.join(cmd)}\n\n"
-                    f"STDOUT:\n{stdout}\n\n"
-                    f"STDERR:\n{stderr}"
+                    self.t(
+                        "processor.realesrgan_no_output",
+                        cmd=" ".join(cmd),
+                        stdout=stdout,
+                        stderr=stderr,
+                    )
                 )
 
             final_temp_output = Path(tempfile.mkstemp(suffix=".png", prefix="ai_result_")[1])
@@ -499,6 +534,56 @@ class ImageProcessor:
             return img.convert("RGB")
 
         return img.convert("RGB")
+
+    def get_output_format(self, source_file: Path) -> str:
+        selected_format = str(self.settings.output_format or "jpg").lower()
+        if selected_format == "keep":
+            source_format = source_file.suffix.lower().lstrip(".")
+            if source_format == "jpeg":
+                return "jpg"
+            if source_format in OUTPUT_FORMATS and source_format != "keep":
+                return source_format
+            return "jpg"
+        if selected_format in OUTPUT_FORMATS and selected_format != "keep":
+            return selected_format
+        return "jpg"
+
+    @staticmethod
+    def get_output_extension(source_file: Path, output_format: str) -> str:
+        if output_format == "jpg" and source_file.suffix.lower() == ".jpeg":
+            return ".jpeg"
+        return ".tif" if output_format == "tiff" else f".{output_format}"
+
+    def save_image(self, img: Image.Image, output_path: Path, output_format: str):
+        if output_format == "jpg":
+            prepared = self.prepare_for_jpeg(img)
+            prepared.save(
+                output_path,
+                format="JPEG",
+                quality=self.settings.jpeg_quality,
+                optimize=True,
+                progressive=True,
+                subsampling=0,
+            )
+            return
+
+        if output_format == "png":
+            self.prepare_for_png(img).save(output_path, format="PNG", optimize=True)
+            return
+
+        if output_format == "webp":
+            img.save(output_path, format="WEBP", quality=self.settings.jpeg_quality, method=6)
+            return
+
+        if output_format == "bmp":
+            self.prepare_for_jpeg(img).save(output_path, format="BMP")
+            return
+
+        if output_format == "tiff":
+            self.prepare_for_png(img).save(output_path, format="TIFF")
+            return
+
+        self.prepare_for_jpeg(img).save(output_path, format="JPEG", quality=self.settings.jpeg_quality)
 
     def make_output_path(self, source_file: Path, extension: str) -> Path:
         base_name = source_file.stem

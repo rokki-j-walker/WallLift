@@ -6,6 +6,9 @@ class AppSettings:
     min_width: int
     min_height: int
     jpeg_quality: int
+    output_format: str
+    output_folder_name: str
+    output_base_dir: str | None
 
     use_ai: bool
     use_threads: bool

@@ -1,11 +1,11 @@
 import customtkinter as ctk
 
-from settings_window import SettingsWindow
+from app_theme import apply_saved_theme
+from windows import SettingsWindow
 
 
 def main():
-    ctk.set_appearance_mode("System")
-    ctk.set_default_color_theme("blue")
+    apply_saved_theme()
 
     app = SettingsWindow()
     app.mainloop()
