@@ -4,7 +4,7 @@ from tkinter import messagebox
 import customtkinter as ctk
 
 from app_models import ProcessingStats
-from image_processor import ImageProcessor
+from image_processing import ImageProcessor
 from localization import Translator
 from ui_helpers import attach_tooltip
 from ui_icons import get_icon, get_logo

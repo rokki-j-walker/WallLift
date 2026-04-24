@@ -12,7 +12,7 @@ from PIL import Image, ImageOps
 
 from app_config import DEFAULT_OUTPUT_FOLDER_NAME, OUTPUT_FORMATS, SUPPORTED_EXTENSIONS
 from app_models import AppSettings, ProcessingStats, ProcessResult
-from style_analyzer import StyleAnalyzer
+from image_processing.style_analyzer import StyleAnalyzer
 
 
 class ImageProcessor:
