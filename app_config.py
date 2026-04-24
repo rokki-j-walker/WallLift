@@ -9,6 +9,26 @@ BASE_DIR = Path(__file__).resolve().parent
 
 REAL_ESRGAN_EXE = BASE_DIR / "rnv" / "realesrgan-ncnn-vulkan.exe"
 
+REAL_ESRGAN_MODELS_REPO_URL = "https://github.com/xinntao/Real-ESRGAN"
+REAL_ESRGAN_RUNTIME_REPO_URL = "https://github.com/xinntao/Real-ESRGAN-ncnn-vulkan"
+SUPPORTED_REAL_ESRGAN_MODELS_RELEASE = "v0.2.5.0"
+SUPPORTED_REAL_ESRGAN_RUNTIME_RELEASE = "v0.2.0"
+SUPPORTED_REAL_ESRGAN_MODELS_ASSET = "realesrgan-ncnn-vulkan-20220424-windows.zip"
+SUPPORTED_REAL_ESRGAN_RUNTIME_ASSET = "realesrgan-ncnn-vulkan-v0.2.0-windows.zip"
+REAL_ESRGAN_MODELS_DOWNLOAD_URL = (
+    f"{REAL_ESRGAN_MODELS_REPO_URL}/releases/download/{SUPPORTED_REAL_ESRGAN_MODELS_RELEASE}/"
+    f"{SUPPORTED_REAL_ESRGAN_MODELS_ASSET}"
+)
+REAL_ESRGAN_RUNTIME_DOWNLOAD_URL = (
+    f"{REAL_ESRGAN_RUNTIME_REPO_URL}/releases/download/{SUPPORTED_REAL_ESRGAN_RUNTIME_RELEASE}/"
+    f"{SUPPORTED_REAL_ESRGAN_RUNTIME_ASSET}"
+)
+REAL_ESRGAN_MODELS_ARCHIVE_NAME = SUPPORTED_REAL_ESRGAN_MODELS_ASSET
+REAL_ESRGAN_RUNTIME_ARCHIVE_NAME = SUPPORTED_REAL_ESRGAN_RUNTIME_ASSET
+
+CLIP_MODEL_REPO = "openai/clip-vit-base-patch32"
+CLIP_MODEL_FOLDER_NAME = "clip-vit-base-patch32"
+
 SUPPORTED_EXTENSIONS = {
     ".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tif", ".tiff"
 }
@@ -67,6 +87,37 @@ def get_settings_dir() -> Path:
 
 def get_settings_file() -> Path:
     return get_settings_dir() / "settings.json"
+
+
+def get_ai_dir() -> Path:
+    return get_settings_dir() / "ai"
+
+
+def get_ai_tools_dir() -> Path:
+    return get_ai_dir() / "tools"
+
+
+def get_ai_models_dir() -> Path:
+    return get_ai_dir() / "models"
+
+
+def get_real_esrgan_tool_dir() -> Path:
+    return get_ai_tools_dir() / "realesrgan-ncnn-vulkan"
+
+
+def get_downloaded_real_esrgan_exe() -> Path:
+    return get_real_esrgan_tool_dir() / "realesrgan-ncnn-vulkan.exe"
+
+
+def get_real_esrgan_exe_path() -> Path:
+    downloaded_exe = get_downloaded_real_esrgan_exe()
+    if downloaded_exe.is_file():
+        return downloaded_exe
+    return REAL_ESRGAN_EXE
+
+
+def get_clip_model_dir() -> Path:
+    return get_ai_models_dir() / CLIP_MODEL_FOLDER_NAME
 
 
 def migrate_settings_dir(old_settings_dir: Path, settings_dir: Path):

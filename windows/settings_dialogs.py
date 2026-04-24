@@ -1,3 +1,5 @@
+import threading
+import traceback
 from tkinter import messagebox
 
 import customtkinter as ctk
@@ -10,6 +12,94 @@ from app_config import (
     AI_TILE_SIZES,
 )
 from windows.base import BaseDialog
+
+
+class AssetDownloadDialog(BaseDialog):
+    def __init__(self, owner, title: str, message: str, download_func):
+        super().__init__(owner, title=title, width=560, height=260, autosize=True)
+        self.owner = owner
+        self.download_func = download_func
+        self.result = None
+        self.error = None
+        self.thread = None
+
+        self.message_var = ctk.StringVar(value=message)
+        self.progress_var = ctk.StringVar(value=owner.t("assets.download.starting"))
+
+        self.build()
+        self.autosize_modal(min_width=560, min_height=260)
+        self.activate()
+        self.protocol("WM_DELETE_WINDOW", lambda: None)
+        self.after(80, self.start_download)
+
+    def build(self):
+        frame = ctk.CTkFrame(self)
+        frame.grid(row=0, column=0, sticky="nsew", padx=18, pady=18)
+        frame.grid_columnconfigure(0, weight=1)
+
+        ctk.CTkLabel(
+            frame,
+            textvariable=self.message_var,
+            anchor="w",
+            justify="left",
+            wraplength=480,
+        ).grid(row=0, column=0, sticky="ew", padx=16, pady=(16, 12))
+
+        self.progress_bar = ctk.CTkProgressBar(frame)
+        self.progress_bar.grid(row=1, column=0, sticky="ew", padx=16, pady=(0, 8))
+        self.progress_bar.set(0)
+
+        ctk.CTkLabel(frame, textvariable=self.progress_var, anchor="w").grid(
+            row=2, column=0, sticky="ew", padx=16, pady=(0, 16)
+        )
+
+    def start_download(self):
+        self.thread = threading.Thread(target=self.run_download, daemon=True)
+        self.thread.start()
+
+    def run_download(self):
+        try:
+            self.result = self.download_func(self.on_progress)
+        except Exception:
+            self.error = traceback.format_exc()
+
+        self.after(0, self.finish)
+
+    def on_progress(self, done: int, total: int):
+        def _update():
+            if total > 0:
+                percent = max(0, min(100, int(done / total * 100)))
+                self.progress_bar.set(percent / 100)
+                self.progress_var.set(
+                    self.owner.t(
+                        "assets.download.progress",
+                        percent=percent,
+                        done=self.format_bytes(done),
+                        total=self.format_bytes(total),
+                    )
+                )
+            else:
+                self.progress_bar.set(0)
+                self.progress_var.set(self.owner.t("assets.download.progress_unknown", done=self.format_bytes(done)))
+
+        self.after(0, _update)
+
+    def finish(self):
+        try:
+            self.grab_release()
+        except Exception:
+            pass
+        self.destroy()
+
+    @staticmethod
+    def format_bytes(value: int) -> str:
+        size = float(max(0, value))
+        for unit in ["B", "KB", "MB", "GB"]:
+            if size < 1024 or unit == "GB":
+                if unit == "B":
+                    return f"{int(size)} {unit}"
+                return f"{size:.1f} {unit}"
+            size /= 1024
 
 
 class ThemeDialog(BaseDialog):

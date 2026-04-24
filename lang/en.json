@@ -120,7 +120,18 @@
     "settings.dialog.save_changed_title": "Save settings",
     "settings.dialog.save_changed_message": "Settings were changed. Save them before closing?",
 
-    "gpu.default": "0 - primary GPU / auto",
+    "assets.download.starting": "Preparing download...",
+    "assets.download.progress": "Downloaded {done} of {total}, {percent}%",
+    "assets.download.progress_unknown": "Downloaded {done}",
+    "assets.download.failed": "Failed to download the component:\n\n{error}",
+    "assets.realesrgan.title": "Download Real-ESRGAN",
+    "assets.realesrgan.prompt": "Real-ESRGAN ncnn-vulkan runtime {runtime_version} and Real-ESRGAN models {models_version} are required for AI upscale. These versions are explicitly supported by WallLift.\n\nDownload them into the settings folder?\n\nFolder:\n{folder}\n\nEXE:\n{path}",
+    "assets.realesrgan.downloading": "Downloading Real-ESRGAN ncnn-vulkan {runtime_version} and models {models_version} to:\n{path}",
+    "assets.clip.title": "Download style analysis model",
+    "assets.clip.prompt": "Style auto-analysis requires the {model} model.\n\nDownload size: about {size}\n\nDownload it into the settings folder?\n\n{path}",
+    "assets.clip.downloading": "Downloading {model} to:\n{path}",
+
+    "gpu.default": "0 — primary GPU / auto",
 
     "progress.initial.file": "Preparing...",
     "progress.total": "Total progress: {done} of {total}, {percent}%",

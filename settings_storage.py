@@ -4,7 +4,7 @@ import re
 import subprocess
 from pathlib import Path
 
-from app_config import get_settings_dir, get_settings_file, REAL_ESRGAN_EXE
+from app_config import get_real_esrgan_exe_path, get_settings_dir, get_settings_file
 
 
 def get_settings_file_path() -> Path:
@@ -127,7 +127,7 @@ def _parse_real_esrgan_gpu_output(text: str) -> list[str]:
 
 
 def _run_real_esrgan_for_gpu_text() -> str:
-    exe = Path(REAL_ESRGAN_EXE)
+    exe = Path(get_real_esrgan_exe_path())
 
     if not exe.is_file():
         return ""

@@ -9,6 +9,7 @@ from app_theme import (
     get_theme_settings,
 )
 from app_config import (
+    CLIP_MODEL_REPO,
     DISPLAY_NAME,
     DEFAULT_MIN_WIDTH,
     DEFAULT_MIN_HEIGHT,
@@ -22,7 +23,19 @@ from app_config import (
     DEFAULT_AI_TILE_SIZE,
     DEFAULT_AI_THREAD_CONFIG,
     DEFAULT_AI_COOLDOWN_SECONDS,
-    REAL_ESRGAN_EXE,
+    SUPPORTED_REAL_ESRGAN_MODELS_RELEASE,
+    SUPPORTED_REAL_ESRGAN_RUNTIME_RELEASE,
+    get_clip_model_dir,
+    get_downloaded_real_esrgan_exe,
+    get_real_esrgan_exe_path,
+    get_real_esrgan_tool_dir,
+)
+from ai_assets import (
+    download_clip_model,
+    download_real_esrgan,
+    get_clip_download_size,
+    is_real_esrgan_available,
+    is_clip_model_available,
 )
 from app_models import AppSettings
 from localization import Translator, list_languages, normalize_language_code
@@ -36,7 +49,7 @@ from ui_icons import get_icon, get_logo
 from ui_helpers import attach_tooltip
 from windows.base import BaseDialog, BaseMainWindow
 from windows.progress_window import ProgressWindow
-from windows.settings_dialogs import AiDialog, ThemeDialog
+from windows.settings_dialogs import AiDialog, AssetDownloadDialog, ThemeDialog
 
 
 ICON_BUTTON_SIZE = 46
@@ -1050,6 +1063,88 @@ class SettingsWindow(BaseMainWindow):
         self.deiconify()
         self.after(0, self.restore_window_state_after_processing)
 
+    def ensure_real_esrgan_ready(self) -> bool:
+        exe_path = get_real_esrgan_exe_path()
+        if exe_path.is_file() and (exe_path.parent / "models").is_dir():
+            return True
+
+        target_path = get_downloaded_real_esrgan_exe()
+        answer = messagebox.askyesno(
+            self.t("assets.realesrgan.title"),
+            self.t(
+                "assets.realesrgan.prompt",
+                runtime_version=SUPPORTED_REAL_ESRGAN_RUNTIME_RELEASE,
+                models_version=SUPPORTED_REAL_ESRGAN_MODELS_RELEASE,
+                path=target_path,
+                folder=get_real_esrgan_tool_dir(),
+            ),
+            parent=self,
+        )
+        if not answer:
+            return False
+
+        dialog = AssetDownloadDialog(
+            self,
+            self.t("assets.realesrgan.title"),
+            self.t(
+                "assets.realesrgan.downloading",
+                runtime_version=SUPPORTED_REAL_ESRGAN_RUNTIME_RELEASE,
+                models_version=SUPPORTED_REAL_ESRGAN_MODELS_RELEASE,
+                path=target_path,
+            ),
+            download_real_esrgan,
+        )
+        self.wait_window(dialog)
+
+        if dialog.error:
+            messagebox.showerror(
+                self.t("common.error"),
+                self.t("assets.download.failed", error=dialog.error),
+                parent=self,
+            )
+            return False
+
+        ready = is_real_esrgan_available()
+        if ready:
+            self.refresh_gpu_options()
+        return ready
+
+    def ensure_clip_model_ready(self) -> bool:
+        if is_clip_model_available():
+            return True
+
+        model_dir = get_clip_model_dir()
+        answer = messagebox.askyesno(
+            self.t("assets.clip.title"),
+            self.t(
+                "assets.clip.prompt",
+                model=CLIP_MODEL_REPO,
+                size=AssetDownloadDialog.format_bytes(get_clip_download_size()),
+                path=model_dir,
+            ),
+            parent=self,
+        )
+        if not answer:
+            return False
+
+        dialog = AssetDownloadDialog(
+            self,
+            self.t("assets.clip.title"),
+            self.t("assets.clip.downloading", model=CLIP_MODEL_REPO, path=model_dir),
+            download_clip_model,
+        )
+        self.wait_window(dialog)
+
+        if dialog.error:
+            messagebox.showerror(
+                self.t("common.error"),
+                self.t("assets.download.failed", error=dialog.error),
+                parent=self,
+            )
+            return False
+
+        return is_clip_model_available()
+
     def make_settings(self):
         try:
             min_width = int(self.min_width_var.get())
@@ -1080,12 +1175,11 @@ class SettingsWindow(BaseMainWindow):
         use_threads = mode == "threads"
 
         if use_ai:
-            ai_exe_path = str(REAL_ESRGAN_EXE)
-            if not Path(ai_exe_path).is_file():
-                messagebox.showerror(
-                    self.t("common.error"),
-                    self.t("settings.dialog.realesrgan_not_found", path=ai_exe_path),
-                )
+            if not self.ensure_real_esrgan_ready():
+                return None
+            ai_exe_path = str(get_real_esrgan_exe_path())
+
+            if self.auto_style_analysis_var.get() and not self.ensure_clip_model_ready():
                 return None
         else:
             ai_exe_path = ""
@@ -1323,6 +1417,18 @@ class SettingsWindow(BaseMainWindow):
 
     def get_selected_gpu_id(self) -> int:
         return int(self.gpu_label_to_id.get(self.ai_gpu_var.get(), 0))
+
+    def refresh_gpu_options(self):
+        current_gpu_id = self.get_selected_gpu_id()
+        self.gpu_labels = detect_real_esrgan_gpus()
+        if not self.gpu_labels or self.gpu_labels == ["0 — основная видеокарта / авто"]:
+            self.gpu_labels = [self.t("gpu.default")]
+
+        self.gpu_label_to_id = {label: self.extract_gpu_id(label) for label in self.gpu_labels}
+        self.ai_gpu_var.set(self.get_gpu_label_by_id(current_gpu_id))
+
+        if hasattr(self, "ai_gpu_menu"):
+            self.ai_gpu_menu.configure(values=self.gpu_labels)
 
     # =========================
     # Helpers

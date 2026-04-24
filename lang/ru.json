@@ -120,6 +120,17 @@
     "settings.dialog.save_changed_title": "Сохранение настроек",
     "settings.dialog.save_changed_message": "Настройки были изменены. Сохранить их перед закрытием?",
 
+    "assets.download.starting": "Подготовка загрузки...",
+    "assets.download.progress": "Загружено {done} из {total}, {percent}%",
+    "assets.download.progress_unknown": "Загружено {done}",
+    "assets.download.failed": "Не удалось загрузить компонент:\n\n{error}",
+    "assets.realesrgan.title": "Загрузка Real-ESRGAN",
+    "assets.realesrgan.prompt": "Для ИИ-апскейла нужен Real-ESRGAN ncnn-vulkan runtime {runtime_version} и модели Real-ESRGAN {models_version}. Эти версии явно поддерживаются WallLift.\n\nСкачать их в папку настроек?\n\nПапка:\n{folder}\n\nEXE:\n{path}",
+    "assets.realesrgan.downloading": "Скачиваем Real-ESRGAN ncnn-vulkan {runtime_version} и модели {models_version} в:\n{path}",
+    "assets.clip.title": "Загрузка модели анализа стиля",
+    "assets.clip.prompt": "Для автоанализа стиля нужна модель {model}.\n\nРазмер загрузки: примерно {size}\n\nСкачать в папку настроек?\n\n{path}",
+    "assets.clip.downloading": "Скачиваем модель {model} в:\n{path}",
+
     "gpu.default": "0 — основная видеокарта / авто",
 
     "progress.initial.file": "Подготовка...",
