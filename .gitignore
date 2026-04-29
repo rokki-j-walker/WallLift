@@ -14,11 +14,10 @@ tmp*/
 rnv/
 build/
 dist/
-packaging/
+local_build/
 release/
 releases/
 artifacts/
-build_*.ps1
 *.log
 *.tmp
 
