@@ -20,7 +20,31 @@ optionally use AI upscaling when an image needs to be enlarged.
 ## Run
 
 ```powershell
-python walllift.py
+.\.venv\Scripts\python.exe .\walllift.py
+```
+
+If the virtual environment is missing or dependencies were installed into a
+different Python, recreate the local environment:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+```
+
+## Build EXE
+
+Build the Windows application with PyInstaller:
+
+```powershell
+.\build_exe.ps1
+```
+
+The executable is created at `dist\WallLift\WallLift.exe`.
+
+Prebuilt Windows releases are available on GitHub:
+
+```text
+https://github.com/rokki-j-walker/ImageSizer/releases/download/v0.1.1/WallLift-0.1.1-windows-x64.zip
 ```
 
 ## Settings And Downloaded Assets

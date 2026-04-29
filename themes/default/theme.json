@@ -1,0 +1,15 @@
+{
+    "id": "default",
+    "name": "Default",
+    "customtkinter_color_theme": "blue",
+    "assets": {
+        "icons": {
+            "light": "icons/light",
+            "dark": "icons/dark"
+        },
+        "logos": {
+            "light": "logos/light",
+            "dark": "logos/dark"
+        }
+    }
+}

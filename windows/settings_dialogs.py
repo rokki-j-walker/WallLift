@@ -4,6 +4,9 @@ from tkinter import messagebox
 
 import customtkinter as ctk
 
+from app_theme import load_theme
+from ui_icons import clear_icon_cache
+
 from app_config import (
     AI_COOLDOWN_SECONDS,
     AI_MODELS,
@@ -104,11 +107,12 @@ class AssetDownloadDialog(BaseDialog):
 
 class ThemeDialog(BaseDialog):
     def __init__(self, owner):
-        super().__init__(owner, title=owner.t("settings.design.title"), width=460, height=330)
+        super().__init__(owner, title=owner.t("settings.design.title"), width=500, height=360, autosize=True)
         self.owner = owner
 
         try:
             self.build()
+            self.autosize_modal(min_width=500, min_height=360)
             self.activate()
         except Exception as exc:
             self.abort(owner.t("common.error"), owner.t("settings.dialog.open_dialog_error", error=exc))
@@ -140,16 +144,27 @@ class ThemeDialog(BaseDialog):
                 value=value,
             ).grid(row=index, column=0, sticky="w", padx=16, pady=(0, 8))
 
+        ctk.CTkLabel(frame, text=self.owner.t("settings.design.theme")).grid(
+            row=5, column=0, sticky="w", padx=16, pady=(4, 6)
+        )
+        self.owner.theme_menu = ctk.CTkOptionMenu(
+            frame,
+            variable=self.owner.theme_var,
+            values=list(self.owner.theme_label_to_id.keys()),
+            width=240,
+        )
+        self.owner.theme_menu.grid(row=6, column=0, sticky="w", padx=16, pady=(0, 12))
+
         ctk.CTkLabel(
             frame,
             text=self.owner.t("settings.design.apply_note"),
             anchor="w",
             justify="left",
             wraplength=380,
-        ).grid(row=5, column=0, sticky="ew", padx=16, pady=(2, 14))
+        ).grid(row=7, column=0, sticky="ew", padx=16, pady=(2, 14))
 
         buttons = ctk.CTkFrame(frame, fg_color="transparent")
-        buttons.grid(row=6, column=0, sticky="ew", padx=16, pady=(0, 16))
+        buttons.grid(row=8, column=0, sticky="ew", padx=16, pady=(0, 16))
         buttons.grid_columnconfigure(0, weight=1)
         ctk.CTkButton(buttons, text=self.owner.t("settings.design.save"), command=self.save).grid(
             row=0, column=0, sticky="ew", padx=(0, 8)
@@ -165,6 +180,7 @@ class ThemeDialog(BaseDialog):
 
     def save(self):
         selected_mode = self.owner.appearance_mode_var.get()
+        selected_theme = load_theme(self.owner.get_selected_theme_id())
 
         if not self.owner.save_current_settings_if_needed(force=True):
             return
@@ -178,6 +194,8 @@ class ThemeDialog(BaseDialog):
 
         try:
             ctk.set_appearance_mode(selected_mode)
+            ctk.set_default_color_theme(selected_theme.color_theme)
+            clear_icon_cache()
         except Exception as exc:
             messagebox.showerror(
                 self.owner.t("common.error"),

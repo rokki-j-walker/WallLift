@@ -12,6 +12,8 @@ env/
 result/
 tmp*/
 rnv/
+build/
+dist/
 *.log
 *.tmp
 

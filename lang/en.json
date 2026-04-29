@@ -56,6 +56,7 @@
     "settings.design.title": "WallLift appearance",
     "settings.design.section": "Interface theme",
     "settings.design.appearance": "Choose mode:",
+    "settings.design.theme": "Theme:",
     "settings.design.appearance_system": "Automatic",
     "settings.design.appearance_light": "Light",
     "settings.design.appearance_dark": "Dark",

@@ -7,6 +7,7 @@ import customtkinter as ctk
 from app_theme import (
     DEFAULT_COLOR_THEME,
     get_theme_settings,
+    list_themes,
 )
 from app_config import (
     CLIP_MODEL_REPO,
@@ -108,6 +109,9 @@ class SettingsWindow(BaseMainWindow):
         self.language_label_to_code = {language.name: language.code for language in self.available_languages}
         self.language_var = ctk.StringVar(value=self.get_language_label(self.language_code))
         self.appearance_mode_var = ctk.StringVar(value=self.theme_settings["appearance_mode"])
+        self.available_themes = list_themes()
+        self.theme_label_to_id = {theme.name: theme.theme_id for theme in self.available_themes}
+        self.theme_var = ctk.StringVar(value=self.get_theme_label(self.theme_settings["theme_id"]))
 
         self.gpu_labels = detect_real_esrgan_gpus()
         if not self.gpu_labels or self.gpu_labels == ["0 — основная видеокарта / авто"]:
@@ -239,9 +243,10 @@ class SettingsWindow(BaseMainWindow):
             "language": self.language_code,
             "size_preset_id": self.get_selected_preset_id(),
             "source_mode": self.get_source_mode(),
-            "theme_mode": "builtin",
+            "theme_mode": "folder",
+            "theme_id": self.get_selected_theme_id(),
             "appearance_mode": self.appearance_mode_var.get(),
-            "color_theme": DEFAULT_COLOR_THEME,
+            "color_theme": self.get_selected_theme_id(),
         }
 
     def save_current_settings_if_needed(self, force: bool = False) -> bool:
@@ -334,6 +339,15 @@ class SettingsWindow(BaseMainWindow):
 
     def get_source_mode(self) -> str:
         return self.source_mode_labels.get(self.source_mode_var.get(), "folder")
+
+    def get_theme_label(self, theme_id: str) -> str:
+        for theme in self.available_themes:
+            if theme.theme_id == theme_id:
+                return theme.name
+        return self.available_themes[0].name if self.available_themes else DEFAULT_COLOR_THEME
+
+    def get_selected_theme_id(self) -> str:
+        return self.theme_label_to_id.get(self.theme_var.get(), self.theme_settings["theme_id"])
 
     # =========================
     # UI

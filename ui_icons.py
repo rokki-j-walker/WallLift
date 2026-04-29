@@ -3,11 +3,15 @@ from functools import lru_cache
 import customtkinter as ctk
 from PIL import Image, ImageDraw
 
+from app_theme import get_active_theme
 
-ICON_SIZE = 24
-ICON_DISPLAY_SIZE = 20
-LOGO_SIZE = 32
-LOGO_DISPLAY_SIZE = 28
+
+ICON_ASSET_SIZE = 64
+ICON_DRAW_SIZE = 24
+ICON_DISPLAY_SIZE = 24
+LOGO_ASSET_SIZE = 64
+LOGO_DRAW_SIZE = 32
+LOGO_DISPLAY_SIZE = 32
 
 LIGHT_STROKE = "#1f2937"
 DARK_STROKE = "#f3f4f6"
@@ -16,17 +20,24 @@ DARK_ACCENT = "#60a5fa"
 
 
 def get_icon(name: str) -> ctk.CTkImage:
-    return _get_icon(name)
+    theme = get_active_theme()
+    return _get_icon(theme.theme_id, name)
 
 
 def get_logo() -> ctk.CTkImage:
-    return _get_logo()
+    theme = get_active_theme()
+    return _get_logo(theme.theme_id)
 
 
 @lru_cache(maxsize=None)
-def _get_icon(name: str) -> ctk.CTkImage:
-    light_image = _draw_icon(name, LIGHT_STROKE, LIGHT_ACCENT)
-    dark_image = _draw_icon(name, DARK_STROKE, DARK_ACCENT)
+def _get_icon(theme_id: str, name: str) -> ctk.CTkImage:
+    theme = get_active_theme()
+    light_image = load_theme_image(theme.light_icons_dir / f"{name}.png", ICON_ASSET_SIZE) or _draw_icon(
+        name, LIGHT_STROKE, LIGHT_ACCENT
+    )
+    dark_image = load_theme_image(theme.dark_icons_dir / f"{name}.png", ICON_ASSET_SIZE) or _draw_icon(
+        name, DARK_STROKE, DARK_ACCENT
+    )
 
     return ctk.CTkImage(
         light_image=light_image,
@@ -36,9 +47,10 @@ def _get_icon(name: str) -> ctk.CTkImage:
 
 
 @lru_cache(maxsize=1)
-def _get_logo() -> ctk.CTkImage:
-    light_image = _draw_logo()
-    dark_image = _draw_logo()
+def _get_logo(theme_id: str) -> ctk.CTkImage:
+    theme = get_active_theme()
+    light_image = load_theme_image(theme.light_logos_dir / "logo.png", LOGO_ASSET_SIZE) or _draw_logo()
+    dark_image = load_theme_image(theme.dark_logos_dir / "logo.png", LOGO_ASSET_SIZE) or _draw_logo()
 
     return ctk.CTkImage(
         light_image=light_image,
@@ -47,8 +59,25 @@ def _get_logo() -> ctk.CTkImage:
     )
 
 
+def clear_icon_cache():
+    _get_icon.cache_clear()
+    _get_logo.cache_clear()
+
+
+def load_theme_image(path, asset_size: int) -> Image.Image | None:
+    try:
+        if path.is_file():
+            image = Image.open(path).convert("RGBA")
+            if image.size != (asset_size, asset_size):
+                return image.resize((asset_size, asset_size), Image.Resampling.LANCZOS)
+            return image
+    except Exception:
+        return None
+    return None
+
+
 def _draw_logo() -> Image.Image:
-    image = Image.new("RGBA", (LOGO_SIZE, LOGO_SIZE), (0, 0, 0, 0))
+    image = Image.new("RGBA", (LOGO_DRAW_SIZE, LOGO_DRAW_SIZE), (0, 0, 0, 0))
     draw = ImageDraw.Draw(image)
 
     draw.rounded_rectangle((2, 2, 30, 30), radius=7, fill="#1d8cf8")
@@ -59,11 +88,11 @@ def _draw_logo() -> Image.Image:
     draw.line([(11, 21), (21, 11)], fill="#ffffff", width=3)
     draw.polygon([(19, 9), (24, 8), (23, 13)], fill="#ffffff")
 
-    return image
+    return image.resize((LOGO_ASSET_SIZE, LOGO_ASSET_SIZE), Image.Resampling.LANCZOS)
 
 
 def _draw_icon(name: str, stroke: str, accent: str) -> Image.Image:
-    image = Image.new("RGBA", (ICON_SIZE, ICON_SIZE), (0, 0, 0, 0))
+    image = Image.new("RGBA", (ICON_DRAW_SIZE, ICON_DRAW_SIZE), (0, 0, 0, 0))
     draw = ImageDraw.Draw(image)
 
     if name == "folder":
@@ -106,7 +135,7 @@ def _draw_icon(name: str, stroke: str, accent: str) -> Image.Image:
     else:
         _draw_fallback(draw, stroke)
 
-    return image
+    return image.resize((ICON_ASSET_SIZE, ICON_ASSET_SIZE), Image.Resampling.LANCZOS)
 
 
 def _draw_folder(draw: ImageDraw.ImageDraw, stroke: str, accent: str):

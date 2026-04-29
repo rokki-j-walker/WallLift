@@ -1,11 +1,12 @@
 import os
 import shutil
+import sys
 from pathlib import Path
 
 OLD_APP_NAME = "ImageSizer"
 APP_NAME = "WallLift"
 DISPLAY_NAME = "WallLift"
-BASE_DIR = Path(__file__).resolve().parent
+BASE_DIR = Path(sys.executable).resolve().parent if getattr(sys, "frozen", False) else Path(__file__).resolve().parent
 
 REAL_ESRGAN_MODELS_REPO_URL = "https://github.com/xinntao/Real-ESRGAN"
 REAL_ESRGAN_RUNTIME_REPO_URL = "https://github.com/xinntao/Real-ESRGAN-ncnn-vulkan"
