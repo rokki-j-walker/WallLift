@@ -44,7 +44,7 @@ The executable is created at `dist\WallLift\WallLift.exe`.
 Prebuilt Windows releases are available on GitHub:
 
 ```text
-https://github.com/rokki-j-walker/ImageSizer/releases/download/v0.1.1/WallLift-0.1.1-windows-x64.zip
+https://github.com/rokki-j-walker/WallLift/releases/download/v0.1.1/WallLift-0.1.1-windows-x64.zip
 ```
 
 ## Settings And Downloaded Assets
