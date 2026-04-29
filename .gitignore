@@ -14,8 +14,20 @@ tmp*/
 rnv/
 build/
 dist/
+packaging/
+release/
+releases/
+artifacts/
+build_*.ps1
 *.log
 *.tmp
+
+.env
+.env.*
+*.key
+*.pem
+*.p12
+*.pfx
 
 .DS_Store
 Thumbs.db

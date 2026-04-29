@@ -31,16 +31,6 @@ python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 ```
 
-## Build EXE
-
-Build the Windows application with PyInstaller:
-
-```powershell
-.\build_exe.ps1
-```
-
-The executable is created at `dist\WallLift\WallLift.exe`.
-
 Prebuilt Windows releases are available on GitHub:
 
 ```text
