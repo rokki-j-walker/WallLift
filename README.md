@@ -33,9 +33,10 @@ python -m venv .venv
 
 Prebuilt Windows releases are available on GitHub:
 
-```text
-https://github.com/rokki-j-walker/WallLift/releases/download/v0.1.1/WallLift-0.1.1-windows-x64.zip
-```
+- Installer:
+  https://github.com/rokki-j-walker/WallLift/releases/download/v0.1.1/WallLift-0.1.1-setup-windows-x64.exe
+- Portable version:
+  https://github.com/rokki-j-walker/WallLift/releases/download/v0.1.1/WallLift-0.1.1-windows-x64.zip
 
 ## Settings And Downloaded Assets
 
