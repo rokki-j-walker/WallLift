@@ -128,6 +128,8 @@ def _draw_icon(name: str, stroke: str, accent: str) -> Image.Image:
         _draw_external_link(draw, stroke, accent)
     elif name == "reset":
         _draw_reset(draw, stroke, accent)
+    elif name == "update":
+        _draw_update(draw, stroke, accent)
     elif name == "pause":
         _draw_pause(draw, stroke)
     elif name == "play":
@@ -176,6 +178,13 @@ def _draw_reset(draw: ImageDraw.ImageDraw, stroke: str, accent: str):
     draw.arc((5, 5, 19, 19), start=35, end=315, fill=stroke, width=2)
     draw.polygon([(6, 7), (6, 13), (2, 10)], fill=accent)
     draw.line([(6, 10), (10, 10)], fill=accent, width=2)
+
+
+def _draw_update(draw: ImageDraw.ImageDraw, stroke: str, accent: str):
+    draw.arc((5, 5, 19, 19), start=35, end=300, fill=stroke, width=2)
+    draw.polygon([(17, 4), (21, 8), (16, 10)], fill=accent)
+    draw.line([(12, 8), (12, 17)], fill=accent, width=2)
+    draw.line([(8, 13), (12, 17), (16, 13)], fill=accent, width=2)
 
 
 def _draw_pause(draw: ImageDraw.ImageDraw, stroke: str):

@@ -1,4 +1,5 @@
 import os
+import subprocess
 from pathlib import Path
 from tkinter import filedialog, messagebox
 
@@ -11,6 +12,7 @@ from app_theme import (
 )
 from app_config import (
     CLIP_MODEL_REPO,
+    APP_VERSION,
     DISPLAY_NAME,
     DEFAULT_MIN_WIDTH,
     DEFAULT_MIN_HEIGHT,
@@ -55,6 +57,7 @@ from settings_storage import (
 )
 from ui_icons import get_icon, get_logo
 from ui_helpers import attach_tooltip
+from update_checker import download_update_installer, fetch_latest_update
 from windows.base import BaseDialog, BaseMainWindow
 from windows.progress_window import ProgressWindow
 from windows.settings_dialogs import AiDialog, AssetDownloadDialog, ThemeDialog
@@ -418,6 +421,20 @@ class SettingsWindow(BaseMainWindow):
         )
         self.design_button.grid(row=0, column=4, sticky="e")
         attach_tooltip(self.design_button, self.t("settings.design.open_tooltip"))
+
+        self.update_button = ctk.CTkButton(
+            header,
+            text="",
+            image=get_icon("update"),
+            width=ICON_BUTTON_SIZE,
+            height=ICON_BUTTON_SIZE,
+            command=self.check_for_app_updates,
+            fg_color="transparent",
+            border_width=1,
+            text_color=("gray10", "gray90"),
+        )
+        self.update_button.grid(row=0, column=5, sticky="e", padx=(8, 0))
+        attach_tooltip(self.update_button, self.t("settings.update.open_tooltip"))
 
         self.build_folder_section(self.scroll, row=1)
 
@@ -1015,6 +1032,66 @@ class SettingsWindow(BaseMainWindow):
 
     def open_design_dialog(self):
         ThemeDialog(self)
+
+    def check_for_app_updates(self):
+        try:
+            update = fetch_latest_update()
+        except Exception as exc:
+            messagebox.showerror(
+                self.t("common.error"),
+                self.t("settings.update.check_failed", error=exc),
+                parent=self,
+            )
+            return
+
+        if update is None:
+            messagebox.showinfo(
+                self.t("settings.update.title"),
+                self.t("settings.update.none", version=APP_VERSION),
+                parent=self,
+            )
+            return
+
+        answer = messagebox.askyesno(
+            self.t("settings.update.title"),
+            self.t(
+                "settings.update.found",
+                current=APP_VERSION,
+                latest=update.version,
+                size=AssetDownloadDialog.format_bytes(update.size),
+            ),
+            parent=self,
+        )
+        if not answer:
+            return
+
+        dialog = AssetDownloadDialog(
+            self,
+            self.t("settings.update.downloading_title"),
+            self.t("settings.update.downloading", version=update.version),
+            lambda progress: download_update_installer(update, progress),
+        )
+        self.wait_window(dialog)
+
+        if dialog.error:
+            messagebox.showerror(
+                self.t("common.error"),
+                self.t("settings.update.download_failed", error=dialog.error),
+                parent=self,
+            )
+            return
+
+        try:
+            subprocess.Popen([str(dialog.result)], close_fds=True)
+        except Exception as exc:
+            messagebox.showerror(
+                self.t("common.error"),
+                self.t("settings.update.launch_failed", error=exc),
+                parent=self,
+            )
+            return
+
+        self.destroy()
 
     def open_ai_dialog(self):
         AiDialog(self)

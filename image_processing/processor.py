@@ -452,6 +452,7 @@ class ImageProcessor:
                 text=True,
                 shell=False,
                 cwd=str(ai_exe_path.parent),
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
             )
 
             stdout, stderr = self.current_ai_process.communicate()

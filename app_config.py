@@ -6,7 +6,10 @@ from pathlib import Path
 OLD_APP_NAME = "ImageSizer"
 APP_NAME = "WallLift"
 DISPLAY_NAME = "WallLift"
+APP_VERSION = "0.1.2"
 BASE_DIR = Path(sys.executable).resolve().parent if getattr(sys, "frozen", False) else Path(__file__).resolve().parent
+GITHUB_REPO = "rokki-j-walker/WallLift"
+GITHUB_RELEASES_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
 
 REAL_ESRGAN_MODELS_REPO_URL = "https://github.com/xinntao/Real-ESRGAN"
 REAL_ESRGAN_RUNTIME_REPO_URL = "https://github.com/xinntao/Real-ESRGAN-ncnn-vulkan"
@@ -27,7 +30,7 @@ REAL_ESRGAN_RUNTIME_ARCHIVE_NAME = SUPPORTED_REAL_ESRGAN_RUNTIME_ASSET
 
 CLIP_MODEL_REPO = "openai/clip-vit-base-patch32"
 CLIP_MODEL_FOLDER_NAME = "clip-vit-base-patch32"
-STYLE_ANALYZER_HELPER_VERSION = "0.1.1"
+STYLE_ANALYZER_HELPER_VERSION = APP_VERSION
 STYLE_ANALYZER_HELPER_NAME = "walllift-style-analyzer"
 STYLE_ANALYZER_HELPER_EXE_NAME = f"{STYLE_ANALYZER_HELPER_NAME}.exe"
 STYLE_ANALYZER_HELPER_VERSION_FILE = "VERSION"
