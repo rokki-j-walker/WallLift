@@ -78,6 +78,7 @@
     "settings.ai.auto_style": "Automatically analyze style and choose model",
     "settings.ai.model": "Model:",
     "settings.ai.scale": "AI scale:",
+    "settings.ai.verify_assets_button": "Verify AI files",
 
     "settings.ai_limit.section": "AI load limits",
     "settings.ai_limit.gpu": "GPU:",
@@ -125,6 +126,10 @@
     "assets.download.progress": "Downloaded {done} of {total}, {percent}%",
     "assets.download.progress_unknown": "Downloaded {done}",
     "assets.download.failed": "Failed to download the component:\n\n{error}",
+    "assets.verify.title": "Verify AI files",
+    "assets.verify.success": "Verification completed successfully.\n\n{report}",
+    "assets.verify.failed": "Verification found problems.\n\n{report}",
+    "assets.verify.no_assets": "AI files were not found.",
     "assets.realesrgan.title": "Download Real-ESRGAN",
     "assets.realesrgan.prompt": "Real-ESRGAN ncnn-vulkan runtime {runtime_version} and Real-ESRGAN models {models_version} are required for AI upscale. These versions are explicitly supported by WallLift.\n\nDownload them into the settings folder?\n\nFolder:\n{folder}\n\nEXE:\n{path}",
     "assets.realesrgan.downloading": "Downloading Real-ESRGAN ncnn-vulkan {runtime_version} and models {models_version} to:\n{path}",

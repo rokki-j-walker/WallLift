@@ -34,6 +34,7 @@ from ai_assets import (
     download_clip_model,
     download_real_esrgan,
     get_clip_download_size,
+    verify_ai_assets,
     is_real_esrgan_available,
     is_clip_model_available,
 )
@@ -1006,6 +1007,22 @@ class SettingsWindow(BaseMainWindow):
 
     def open_ai_dialog(self):
         AiDialog(self)
+
+    def run_ai_assets_check(self):
+        ok, messages = verify_ai_assets()
+        report = "\n".join(messages) if messages else self.t("assets.verify.no_assets")
+        if ok:
+            messagebox.showinfo(
+                self.t("assets.verify.title"),
+                self.t("assets.verify.success", report=report),
+                parent=self,
+            )
+        else:
+            messagebox.showwarning(
+                self.t("assets.verify.title"),
+                self.t("assets.verify.failed", report=report),
+                parent=self,
+            )
 
     def start_processing(self):
         source_mode = self.get_source_mode()

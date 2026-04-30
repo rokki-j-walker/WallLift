@@ -253,34 +253,42 @@ class AiDialog(BaseDialog):
         )
         self.owner.ai_scale_menu.grid(row=3, column=1, sticky="w", pady=(8, 14))
 
+        self.owner.verify_ai_assets_button = ctk.CTkButton(
+            frame,
+            text=self.owner.t("settings.ai.verify_assets_button"),
+            command=self.owner.run_ai_assets_check,
+            height=36,
+        )
+        self.owner.verify_ai_assets_button.grid(row=4, column=0, columnspan=2, sticky="ew", padx=16, pady=(2, 14))
+
         ctk.CTkLabel(frame, text=self.owner.t("settings.ai_limit.section"), font=ctk.CTkFont(size=16, weight="bold")).grid(
-            row=4, column=0, columnspan=2, sticky="w", padx=16, pady=(14, 8)
+            row=5, column=0, columnspan=2, sticky="w", padx=16, pady=(14, 8)
         )
 
-        ctk.CTkLabel(frame, text=self.owner.t("settings.ai_limit.gpu")).grid(row=5, column=0, sticky="w", padx=(16, 8), pady=8)
+        ctk.CTkLabel(frame, text=self.owner.t("settings.ai_limit.gpu")).grid(row=6, column=0, sticky="w", padx=(16, 8), pady=8)
         self.owner.ai_gpu_menu = ctk.CTkOptionMenu(frame, variable=self.owner.ai_gpu_var, values=self.owner.gpu_labels, width=330)
-        self.owner.ai_gpu_menu.grid(row=5, column=1, sticky="ew", padx=(0, 16), pady=8)
+        self.owner.ai_gpu_menu.grid(row=6, column=1, sticky="ew", padx=(0, 16), pady=8)
 
-        ctk.CTkLabel(frame, text=self.owner.t("settings.ai_limit.tile")).grid(row=6, column=0, sticky="w", padx=(16, 8), pady=8)
+        ctk.CTkLabel(frame, text=self.owner.t("settings.ai_limit.tile")).grid(row=7, column=0, sticky="w", padx=(16, 8), pady=8)
         self.owner.ai_tile_menu = ctk.CTkOptionMenu(
             frame,
             variable=self.owner.ai_tile_size_var,
             values=AI_TILE_SIZES,
             width=120,
         )
-        self.owner.ai_tile_menu.grid(row=6, column=1, sticky="w", pady=8)
+        self.owner.ai_tile_menu.grid(row=7, column=1, sticky="w", pady=8)
 
-        ctk.CTkLabel(frame, text=self.owner.t("settings.ai_limit.thread")).grid(row=7, column=0, sticky="w", padx=(16, 8), pady=8)
+        ctk.CTkLabel(frame, text=self.owner.t("settings.ai_limit.thread")).grid(row=8, column=0, sticky="w", padx=(16, 8), pady=8)
         self.owner.ai_thread_menu = ctk.CTkOptionMenu(
             frame,
             variable=self.owner.ai_thread_config_var,
             values=AI_THREAD_CONFIGS,
             width=120,
         )
-        self.owner.ai_thread_menu.grid(row=7, column=1, sticky="w", pady=8)
+        self.owner.ai_thread_menu.grid(row=8, column=1, sticky="w", pady=8)
 
         ctk.CTkLabel(frame, text=self.owner.t("settings.ai_limit.cooldown")).grid(
-            row=8, column=0, sticky="w", padx=(16, 8), pady=(8, 14)
+            row=9, column=0, sticky="w", padx=(16, 8), pady=(8, 14)
         )
         self.owner.ai_cooldown_menu = ctk.CTkOptionMenu(
             frame,
@@ -288,7 +296,7 @@ class AiDialog(BaseDialog):
             values=AI_COOLDOWN_SECONDS,
             width=120,
         )
-        self.owner.ai_cooldown_menu.grid(row=8, column=1, sticky="w", pady=(8, 14))
+        self.owner.ai_cooldown_menu.grid(row=9, column=1, sticky="w", pady=(8, 14))
 
         ctk.CTkLabel(
             frame,
@@ -296,9 +304,9 @@ class AiDialog(BaseDialog):
             anchor="w",
             justify="left",
             wraplength=460,
-        ).grid(row=9, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 14))
+        ).grid(row=10, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 14))
 
         ctk.CTkButton(frame, text=self.owner.t("common.close"), command=self.destroy, height=40).grid(
-            row=10, column=1, sticky="e", padx=16, pady=(0, 16)
+            row=11, column=1, sticky="e", padx=16, pady=(0, 16)
         )
         self.owner.on_auto_style_changed()
