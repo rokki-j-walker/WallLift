@@ -147,6 +147,7 @@ def _run_real_esrgan_for_gpu_text() -> str:
                 text=True,
                 timeout=8,
                 cwd=str(exe.parent),
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
             )
             chunks.append(process.stdout or "")
             chunks.append(process.stderr or "")
@@ -166,6 +167,7 @@ def _detect_windows_video_controllers() -> list[str]:
             [
                 "powershell",
                 "-NoProfile",
+                "-NonInteractive",
                 "-ExecutionPolicy",
                 "Bypass",
                 "-Command",
@@ -174,6 +176,7 @@ def _detect_windows_video_controllers() -> list[str]:
             capture_output=True,
             text=True,
             timeout=8,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
         )
     except Exception:
         return []

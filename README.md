@@ -9,9 +9,9 @@ AI upscaling when an image needs to be enlarged.
 Prebuilt Windows packages are available on GitHub:
 
 - Installer:
-  https://github.com/rokki-j-walker/WallLift/releases/download/v0.1.2/WallLift-0.1.2-setup-windows-x64.exe
+  https://github.com/rokki-j-walker/WallLift/releases/download/v0.1.3/WallLift-0.1.3-setup-windows-x64.exe
 - Portable version:
-  https://github.com/rokki-j-walker/WallLift/releases/download/v0.1.2/WallLift-0.1.2-windows-x64.zip
+  https://github.com/rokki-j-walker/WallLift/releases/download/v0.1.3/WallLift-0.1.3-windows-x64.zip
 
 ## Main Features
 
@@ -41,6 +41,25 @@ Start the app:
 ```powershell
 .\.venv\Scripts\python.exe .\walllift.py
 ```
+
+## Build Locally
+
+Windows packaging files are stored in `packaging/windows/`.
+
+Build the portable app archive:
+
+```powershell
+.\packaging\windows\build_exe.ps1
+```
+
+Build the installer:
+
+```powershell
+.\packaging\windows\build_installer.ps1
+```
+
+The installer script expects the Inno Setup compiler path configured in
+`packaging/windows/build_installer.ps1`.
 
 ## User Data
 

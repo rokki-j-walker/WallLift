@@ -89,6 +89,7 @@ class SettingsWindow(BaseMainWindow):
         self.loaded_settings = self.safe_load_settings()
         self.theme_settings = get_theme_settings(self.loaded_settings)
         self.available_languages = list_languages()
+        self._needs_initial_language_prompt = self.should_prompt_initial_language()
         self.language_code = self.get_initial_language_code()
         self.translator = Translator(self.language_code)
         self.t = self.translator.t
@@ -145,6 +146,8 @@ class SettingsWindow(BaseMainWindow):
         self._suppress_ai_component_checks = False
 
         self.after(80, self.autosize_window)
+        if self._needs_initial_language_prompt:
+            self.after(180, self.prompt_language_on_first_launch)
 
     # =========================
     # Settings storage
@@ -164,18 +167,28 @@ class SettingsWindow(BaseMainWindow):
         if saved_language in available_codes:
             return str(saved_language)
 
-        if self.available_languages:
-            selected_language = self.choose_language_on_first_launch()
-            self.loaded_settings["language"] = selected_language
-
-            try:
-                save_settings_json(self.loaded_settings)
-            except Exception:
-                pass
-
-            return selected_language
-
         return normalize_language_code(saved_language)
+
+    def should_prompt_initial_language(self) -> bool:
+        saved_language = self.loaded_settings.get("language")
+        available_codes = {language.code for language in self.available_languages}
+        return bool(self.available_languages and saved_language not in available_codes)
+
+    def prompt_language_on_first_launch(self):
+        if not self.winfo_exists() or not self._needs_initial_language_prompt:
+            return
+
+        selected_language = self.choose_language_on_first_launch()
+        self._needs_initial_language_prompt = False
+
+        if selected_language not in {language.code for language in self.available_languages}:
+            selected_language = self.language_code
+
+        if selected_language != self.language_code:
+            self.apply_language(selected_language)
+
+        self.loaded_settings["language"] = self.language_code
+        self.save_current_settings_if_needed(force=True)
 
     def choose_language_on_first_launch(self) -> str:
         selected = {"code": normalize_language_code(None)}
@@ -1585,17 +1598,48 @@ class SettingsWindow(BaseMainWindow):
         if new_language_code == self.language_code:
             return
 
-        self.language_code = normalize_language_code(new_language_code)
-        self.translator = Translator(self.language_code)
-        self.t = self.translator.t
+        self.apply_language(new_language_code)
 
         if self.save_settings_var.get():
             self.save_current_settings_if_needed(force=True)
 
-        messagebox.showinfo(
-            self.t("settings.program.language_restart_title"),
-            self.t("settings.program.language_restart_message"),
-        )
+    def apply_language(self, language_code: str):
+        source_mode = self.get_source_mode()
+        preset_id = self.get_selected_preset_id()
+        output_format = self.get_output_format()
+        current_gpu_id = self.get_selected_gpu_id()
+
+        self.language_code = normalize_language_code(language_code)
+        self.translator = Translator(self.language_code)
+        self.t = self.translator.t
+        self.title(self.t("app.settings_title"))
+
+        self.language_var.set(self.get_language_label(self.language_code))
+        self.source_mode_labels = {}
+        self.source_mode_var.set(self.get_source_mode_label(source_mode))
+        self.size_preset_var.set(self.get_preset_label(preset_id))
+        self.output_format_var.set(self.get_output_format_label(output_format))
+
+        if len(self.gpu_labels) == 1 and self.extract_gpu_id(self.gpu_labels[0]) == 0:
+            self.gpu_labels = [self.t("gpu.default")]
+            self.gpu_label_to_id = {self.gpu_labels[0]: 0}
+            self.ai_gpu_var.set(self.gpu_labels[0])
+        else:
+            self.ai_gpu_var.set(self.get_gpu_label_by_id(current_gpu_id))
+
+        self.rebuild_ui()
+
+    def rebuild_ui(self):
+        for child in self.winfo_children():
+            child.destroy()
+
+        self._initial_autosized = False
+        self.build_ui()
+        self.on_size_preset_changed(autosize=False)
+        self.on_process_mode_changed(autosize=False)
+        self.on_auto_style_changed()
+        self.update_idletasks()
+        self.autosize_window()
 
     def autosize_window(self):
         if self._initial_autosized:

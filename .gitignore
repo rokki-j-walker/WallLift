@@ -14,7 +14,6 @@ tmp*/
 rnv/
 build/
 dist/
-local_build/
 release/
 releases/
 artifacts/

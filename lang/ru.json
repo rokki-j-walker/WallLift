@@ -48,7 +48,7 @@
     "settings.program.save_last": "Сохранять последние настройки",
     "settings.program.language": "Язык:",
     "settings.program.language_restart_title": "Язык",
-    "settings.program.language_restart_message": "Язык интерфейса изменится после перезапуска WallLift.",
+    "settings.program.language_restart_message": "Язык интерфейса изменён.",
     "settings.program.open_settings_button": "Открыть папку настроек",
     "settings.program.open_settings_tooltip": "Открыть папку с настройками",
 
