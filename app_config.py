@@ -27,6 +27,14 @@ REAL_ESRGAN_RUNTIME_ARCHIVE_NAME = SUPPORTED_REAL_ESRGAN_RUNTIME_ASSET
 
 CLIP_MODEL_REPO = "openai/clip-vit-base-patch32"
 CLIP_MODEL_FOLDER_NAME = "clip-vit-base-patch32"
+STYLE_ANALYZER_HELPER_VERSION = "0.1.1"
+STYLE_ANALYZER_HELPER_NAME = "walllift-style-analyzer"
+STYLE_ANALYZER_HELPER_EXE_NAME = f"{STYLE_ANALYZER_HELPER_NAME}.exe"
+STYLE_ANALYZER_HELPER_ARCHIVE_NAME = f"WallLift-style-analyzer-{STYLE_ANALYZER_HELPER_VERSION}-windows-x64.zip"
+STYLE_ANALYZER_HELPER_DOWNLOAD_URL = (
+    f"https://github.com/rokki-j-walker/WallLift/releases/download/v{STYLE_ANALYZER_HELPER_VERSION}/"
+    f"{STYLE_ANALYZER_HELPER_ARCHIVE_NAME}"
+)
 
 SUPPORTED_EXTENSIONS = {
     ".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tif", ".tiff"
@@ -110,6 +118,14 @@ def get_downloaded_real_esrgan_exe() -> Path:
 
 def get_clip_model_dir() -> Path:
     return get_ai_models_dir() / CLIP_MODEL_FOLDER_NAME
+
+
+def get_style_analyzer_dir() -> Path:
+    return get_ai_tools_dir() / STYLE_ANALYZER_HELPER_NAME
+
+
+def get_downloaded_style_analyzer_exe() -> Path:
+    return get_style_analyzer_dir() / STYLE_ANALYZER_HELPER_EXE_NAME
 
 
 def migrate_settings_dir(old_settings_dir: Path, settings_dir: Path):

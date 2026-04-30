@@ -136,6 +136,9 @@
     "assets.clip.title": "Загрузка модели анализа стиля",
     "assets.clip.prompt": "Для автоанализа стиля нужна модель {model}.\n\nРазмер загрузки: примерно {size}\n\nСкачать в папку настроек?\n\n{path}",
     "assets.clip.downloading": "Скачиваем модель {model} в:\n{path}",
+    "assets.style_analyzer.title": "Загрузка анализатора стиля",
+    "assets.style_analyzer.prompt": "Для автоанализа стиля нужен отдельный анализатор WallLift {version}. Он содержит тяжёлые библиотеки ИИ и скачивается только при необходимости.\n\nСкачать его в папку настроек?\n\nПапка:\n{folder}\n\nEXE:\n{path}\n\nИсточник:\n{url}",
+    "assets.style_analyzer.downloading": "Скачиваем анализатор стиля WallLift {version} в:\n{path}",
 
     "gpu.default": "0 — основная видеокарта / авто",
 

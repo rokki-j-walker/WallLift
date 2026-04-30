@@ -136,6 +136,9 @@
     "assets.clip.title": "Download style analysis model",
     "assets.clip.prompt": "Style auto-analysis requires the {model} model.\n\nDownload size: about {size}\n\nDownload it into the settings folder?\n\n{path}",
     "assets.clip.downloading": "Downloading {model} to:\n{path}",
+    "assets.style_analyzer.title": "Download style analyzer",
+    "assets.style_analyzer.prompt": "Style auto-analysis requires the separate WallLift style analyzer {version}. It contains the heavy AI libraries and is downloaded only when needed.\n\nDownload it into the settings folder?\n\nFolder:\n{folder}\n\nEXE:\n{path}\n\nSource:\n{url}",
+    "assets.style_analyzer.downloading": "Downloading WallLift style analyzer {version} to:\n{path}",
 
     "gpu.default": "0 — primary GPU / auto",
 

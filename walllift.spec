@@ -11,14 +11,6 @@ datas = []
 datas += collect_data_files("customtkinter")
 
 hiddenimports = collect_submodules("customtkinter")
-hiddenimports += [
-    "torch",
-    "torchvision",
-    "transformers",
-    "transformers.models.clip",
-    "transformers.models.clip.modeling_clip",
-    "transformers.models.clip.processing_clip",
-]
 
 a = Analysis(
     ["walllift.py"],
@@ -29,7 +21,15 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=[],
+    excludes=[
+        "torch",
+        "torchvision",
+        "transformers",
+        "tokenizers",
+        "safetensors",
+        "huggingface_hub",
+        "hf_xet",
+    ],
     noarchive=False,
     optimize=0,
 )

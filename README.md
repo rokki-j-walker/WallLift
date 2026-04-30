@@ -81,6 +81,10 @@ When automatic style analysis is enabled, WallLift uses CLIP to classify the ima
 style and pick a Real-ESRGAN model. For example, anime and illustration-like images
 are routed to the anime model.
 
+The main WallLift build does not bundle PyTorch or Transformers. Style analysis is
+handled by a separate helper executable that is downloaded only when automatic
+style analysis is enabled.
+
 The supported CLIP model is:
 
 - `openai/clip-vit-base-patch32`

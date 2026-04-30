@@ -10,9 +10,14 @@ from app_config import (
     REAL_ESRGAN_MODELS_DOWNLOAD_URL,
     REAL_ESRGAN_RUNTIME_ARCHIVE_NAME,
     REAL_ESRGAN_RUNTIME_DOWNLOAD_URL,
+    STYLE_ANALYZER_HELPER_ARCHIVE_NAME,
+    STYLE_ANALYZER_HELPER_DOWNLOAD_URL,
+    STYLE_ANALYZER_HELPER_EXE_NAME,
     get_clip_model_dir,
     get_downloaded_real_esrgan_exe,
+    get_downloaded_style_analyzer_exe,
     get_real_esrgan_tool_dir,
+    get_style_analyzer_dir,
 )
 
 
@@ -49,6 +54,10 @@ def get_real_esrgan_models_download_target() -> Path:
     return get_real_esrgan_tool_dir() / REAL_ESRGAN_MODELS_ARCHIVE_NAME
 
 
+def get_style_analyzer_download_target() -> Path:
+    return get_style_analyzer_dir() / STYLE_ANALYZER_HELPER_ARCHIVE_NAME
+
+
 def is_real_esrgan_available() -> bool:
     ok, _messages = verify_real_esrgan_assets()
     return ok
@@ -56,6 +65,11 @@ def is_real_esrgan_available() -> bool:
 
 def is_clip_model_available() -> bool:
     ok, _messages = verify_clip_assets()
+    return ok
+
+
+def is_style_analyzer_available() -> bool:
+    ok, _messages = verify_style_analyzer_assets()
     return ok
 
 
@@ -192,10 +206,34 @@ def verify_clip_assets() -> tuple[bool, list[str]]:
     return ok, messages
 
 
+def verify_style_analyzer_assets() -> tuple[bool, list[str]]:
+    messages = []
+    ok = True
+
+    archive_path = get_style_analyzer_download_target()
+    if archive_path.is_file():
+        try:
+            verify_zip_archive(archive_path)
+            messages.append("OK: style analyzer helper archive")
+        except Exception as exc:
+            ok = False
+            messages.append(f"ERROR: style analyzer helper archive: {exc}")
+
+    exe_path = get_downloaded_style_analyzer_exe()
+    if exe_path.is_file() and exe_path.stat().st_size > 0:
+        messages.append("OK: style analyzer helper executable")
+    else:
+        ok = False
+        messages.append(f"ERROR: style analyzer helper executable is missing: {exe_path}")
+
+    return ok, messages
+
+
 def verify_ai_assets() -> tuple[bool, list[str]]:
     real_ok, real_messages = verify_real_esrgan_assets()
     clip_ok, clip_messages = verify_clip_assets()
-    return real_ok and clip_ok, real_messages + clip_messages
+    helper_ok, helper_messages = verify_style_analyzer_assets()
+    return real_ok and clip_ok and helper_ok, real_messages + clip_messages + helper_messages
 
 
 def download_real_esrgan(progress_callback=None) -> Path:
@@ -270,6 +308,49 @@ def download_real_esrgan(progress_callback=None) -> Path:
 
 def get_huggingface_file_url(filename: str) -> str:
     return f"https://huggingface.co/{CLIP_MODEL_REPO}/resolve/main/{filename}"
+
+
+def download_style_analyzer(progress_callback=None) -> Path:
+    helper_dir = get_style_analyzer_dir()
+    archive_path = get_style_analyzer_download_target()
+    helper_dir.mkdir(parents=True, exist_ok=True)
+
+    download_file(STYLE_ANALYZER_HELPER_DOWNLOAD_URL, archive_path, progress_callback)
+    verify_zip_archive(archive_path)
+
+    temp_dir = Path(tempfile.mkdtemp(prefix="walllift_style_analyzer_"))
+    try:
+        with zipfile.ZipFile(archive_path, "r") as archive:
+            archive.extractall(temp_dir)
+
+        exe_candidates = list(temp_dir.rglob(STYLE_ANALYZER_HELPER_EXE_NAME))
+        if not exe_candidates:
+            raise FileNotFoundError(f"{STYLE_ANALYZER_HELPER_EXE_NAME} was not found in the helper archive")
+
+        helper_root = exe_candidates[0].parent
+        for item in helper_root.iterdir():
+            destination = helper_dir / item.name
+            if destination == archive_path:
+                continue
+
+            if destination.exists():
+                if destination.is_dir():
+                    shutil.rmtree(destination)
+                else:
+                    destination.unlink()
+
+            if item.is_dir():
+                shutil.copytree(item, destination)
+            else:
+                shutil.copy2(item, destination)
+
+        ok, messages = verify_style_analyzer_assets()
+        if not ok:
+            raise OSError("Style analyzer helper verification failed:\n" + "\n".join(messages))
+
+        return get_downloaded_style_analyzer_exe()
+    finally:
+        shutil.rmtree(temp_dir, ignore_errors=True)
 
 
 def download_clip_model(progress_callback=None) -> Path:

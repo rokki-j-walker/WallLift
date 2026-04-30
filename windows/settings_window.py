@@ -26,17 +26,23 @@ from app_config import (
     DEFAULT_AI_COOLDOWN_SECONDS,
     SUPPORTED_REAL_ESRGAN_MODELS_RELEASE,
     SUPPORTED_REAL_ESRGAN_RUNTIME_RELEASE,
+    STYLE_ANALYZER_HELPER_DOWNLOAD_URL,
+    STYLE_ANALYZER_HELPER_VERSION,
     get_clip_model_dir,
     get_downloaded_real_esrgan_exe,
+    get_downloaded_style_analyzer_exe,
     get_real_esrgan_tool_dir,
+    get_style_analyzer_dir,
 )
 from ai_assets import (
     download_clip_model,
     download_real_esrgan,
+    download_style_analyzer,
     get_clip_download_size,
     verify_ai_assets,
     is_real_esrgan_available,
     is_clip_model_available,
+    is_style_analyzer_available,
 )
 from app_models import AppSettings
 from localization import Translator, list_languages, normalize_language_code
@@ -1171,6 +1177,47 @@ class SettingsWindow(BaseMainWindow):
 
         return is_clip_model_available()
 
+    def ensure_style_analyzer_ready(self) -> bool:
+        if is_style_analyzer_available():
+            return True
+
+        helper_dir = get_style_analyzer_dir()
+        answer = messagebox.askyesno(
+            self.t("assets.style_analyzer.title"),
+            self.t(
+                "assets.style_analyzer.prompt",
+                version=STYLE_ANALYZER_HELPER_VERSION,
+                url=STYLE_ANALYZER_HELPER_DOWNLOAD_URL,
+                folder=helper_dir,
+                path=get_downloaded_style_analyzer_exe(),
+            ),
+            parent=self,
+        )
+        if not answer:
+            return False
+
+        dialog = AssetDownloadDialog(
+            self,
+            self.t("assets.style_analyzer.title"),
+            self.t(
+                "assets.style_analyzer.downloading",
+                version=STYLE_ANALYZER_HELPER_VERSION,
+                path=helper_dir,
+            ),
+            download_style_analyzer,
+        )
+        self.wait_window(dialog)
+
+        if dialog.error:
+            messagebox.showerror(
+                self.t("common.error"),
+                self.t("assets.download.failed", error=dialog.error),
+                parent=self,
+            )
+            return False
+
+        return is_style_analyzer_available()
+
     def make_settings(self):
         try:
             min_width = int(self.min_width_var.get())
@@ -1205,8 +1252,11 @@ class SettingsWindow(BaseMainWindow):
                 return None
             ai_exe_path = str(get_downloaded_real_esrgan_exe())
 
-            if self.auto_style_analysis_var.get() and not self.ensure_clip_model_ready():
-                return None
+            if self.auto_style_analysis_var.get():
+                if not self.ensure_style_analyzer_ready():
+                    return None
+                if not self.ensure_clip_model_ready():
+                    return None
         else:
             ai_exe_path = ""
 
