@@ -1,5 +1,7 @@
 import json
+import os
 import subprocess
+import tempfile
 from pathlib import Path
 
 from ai_assets import is_clip_model_available, is_style_analyzer_available
@@ -38,6 +40,7 @@ class StyleAnalyzer:
             raise RuntimeError("Style analyzer helper or CLIP model is not available")
 
         helper_exe = get_downloaded_style_analyzer_exe()
+        output_path = Path(tempfile.mkstemp(suffix=".json", prefix="walllift_style_")[1])
         cmd = [
             str(helper_exe),
             "--image",
@@ -46,27 +49,37 @@ class StyleAnalyzer:
             str(get_clip_model_dir()),
             "--fallback-model",
             fallback_model,
+            "--output",
+            str(output_path),
         ]
 
-        completed = subprocess.run(
-            cmd,
-            cwd=str(helper_exe.parent),
-            capture_output=True,
-            text=True,
-            shell=False,
-            timeout=180,
-            check=False,
-        )
-
-        if completed.returncode != 0:
-            self.failed = True
-            raise RuntimeError(completed.stderr or completed.stdout or "Style analyzer helper failed")
-
         try:
-            payload = json.loads(completed.stdout.strip())
-        except json.JSONDecodeError as exc:
-            self.failed = True
-            raise RuntimeError(f"Style analyzer helper returned invalid JSON: {completed.stdout}") from exc
+            completed = subprocess.run(
+                cmd,
+                cwd=str(helper_exe.parent),
+                capture_output=True,
+                text=True,
+                shell=False,
+                timeout=180,
+                check=False,
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+            )
+
+            if completed.returncode != 0:
+                self.failed = True
+                raise RuntimeError(completed.stderr or completed.stdout or "Style analyzer helper failed")
+
+            try:
+                payload_text = output_path.read_text(encoding="utf-8")
+                payload = json.loads(payload_text)
+            except (OSError, json.JSONDecodeError) as exc:
+                self.failed = True
+                raise RuntimeError("Style analyzer helper did not return valid JSON") from exc
+        finally:
+            try:
+                os.unlink(output_path)
+            except OSError:
+                pass
 
         model = str(payload.get("model") or fallback_model)
         return model

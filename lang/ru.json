@@ -139,6 +139,11 @@
     "assets.style_analyzer.title": "Загрузка анализатора стиля",
     "assets.style_analyzer.prompt": "Для автоанализа стиля нужен отдельный анализатор WallLift {version}. Он содержит тяжёлые библиотеки ИИ и скачивается только при необходимости.\n\nСкачать его в папку настроек?\n\nПапка:\n{folder}\n\nEXE:\n{path}\n\nИсточник:\n{url}",
     "assets.style_analyzer.downloading": "Скачиваем анализатор стиля WallLift {version} в:\n{path}",
+    "assets.ai_components.title": "Загрузка компонентов ИИ",
+    "assets.ai_components.upscale_only": "ИИ-апскейл",
+    "assets.ai_components.with_style": "ИИ-апскейл и автоанализ стиля",
+    "assets.ai_components.prompt": "Для режима «{mode}» нужно скачать недостающие компоненты ИИ одним потоком.\n\nПапка:\n{folder}\n\nЕсли включён автоанализ стиля, дополнительно будет загружена модель CLIP. Размер CLIP: примерно {clip_size}.\n\nСкачать недостающие файлы?",
+    "assets.ai_components.downloading": "Скачиваем недостающие компоненты для режима «{mode}» в:\n{folder}",
 
     "gpu.default": "0 — основная видеокарта / авто",
 

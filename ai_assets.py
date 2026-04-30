@@ -13,6 +13,8 @@ from app_config import (
     STYLE_ANALYZER_HELPER_ARCHIVE_NAME,
     STYLE_ANALYZER_HELPER_DOWNLOAD_URL,
     STYLE_ANALYZER_HELPER_EXE_NAME,
+    STYLE_ANALYZER_HELPER_VERSION,
+    STYLE_ANALYZER_HELPER_VERSION_FILE,
     get_clip_model_dir,
     get_downloaded_real_esrgan_exe,
     get_downloaded_style_analyzer_exe,
@@ -75,6 +77,21 @@ def is_style_analyzer_available() -> bool:
 
 def get_clip_download_size() -> int:
     return sum(size for _filename, size in CLIP_FILES)
+
+
+def get_real_esrgan_download_size() -> int:
+    total = 0
+    for path in [get_real_esrgan_runtime_download_target(), get_real_esrgan_models_download_target()]:
+        if path.is_file():
+            total += path.stat().st_size
+    return total or 120_000_000
+
+
+def get_style_analyzer_download_size() -> int:
+    path = get_style_analyzer_download_target()
+    if path.is_file():
+        return path.stat().st_size
+    return 200_000_000
 
 
 def download_file(url: str, target_path: Path, progress_callback=None):
@@ -226,6 +243,21 @@ def verify_style_analyzer_assets() -> tuple[bool, list[str]]:
         ok = False
         messages.append(f"ERROR: style analyzer helper executable is missing: {exe_path}")
 
+    version_path = get_style_analyzer_dir() / STYLE_ANALYZER_HELPER_VERSION_FILE
+    if version_path.is_file():
+        actual_version = version_path.read_text(encoding="utf-8").strip()
+        if actual_version == STYLE_ANALYZER_HELPER_VERSION:
+            messages.append(f"OK: style analyzer helper version {actual_version}")
+        else:
+            ok = False
+            messages.append(
+                "ERROR: style analyzer helper version mismatch: "
+                f"{actual_version}, expected {STYLE_ANALYZER_HELPER_VERSION}"
+            )
+    else:
+        ok = False
+        messages.append(f"ERROR: style analyzer helper version file is missing: {version_path}")
+
     return ok, messages
 
 
@@ -344,6 +376,11 @@ def download_style_analyzer(progress_callback=None) -> Path:
             else:
                 shutil.copy2(item, destination)
 
+        (helper_dir / STYLE_ANALYZER_HELPER_VERSION_FILE).write_text(
+            STYLE_ANALYZER_HELPER_VERSION,
+            encoding="utf-8",
+        )
+
         ok, messages = verify_style_analyzer_assets()
         if not ok:
             raise OSError("Style analyzer helper verification failed:\n" + "\n".join(messages))
@@ -385,3 +422,37 @@ def download_clip_model(progress_callback=None) -> Path:
         raise OSError("CLIP verification failed:\n" + "\n".join(messages))
 
     return model_dir
+
+
+def download_ai_components(include_style_analysis: bool = False, progress_callback=None) -> Path:
+    steps = []
+    if not is_real_esrgan_available():
+        steps.append(("Real-ESRGAN", get_real_esrgan_download_size(), download_real_esrgan))
+
+    if include_style_analysis:
+        if not is_style_analyzer_available():
+            steps.append(("Style analyzer", get_style_analyzer_download_size(), download_style_analyzer))
+        if not is_clip_model_available():
+            steps.append(("CLIP", get_clip_download_size(), download_clip_model))
+
+    if not steps:
+        if progress_callback:
+            progress_callback(1, 1)
+        return get_downloaded_real_esrgan_exe()
+
+    expected_total = sum(size for _label, size, _download_func in steps)
+    completed_before_step = 0
+
+    for _label, expected_size, download_func in steps:
+        def _progress(done: int, total: int, offset=completed_before_step, fallback=expected_size):
+            step_total = total or fallback
+            combined_total = max(expected_total, offset + step_total)
+            if progress_callback:
+                progress_callback(min(combined_total, offset + done), combined_total)
+
+        download_func(_progress)
+        completed_before_step += expected_size
+        if progress_callback:
+            progress_callback(min(completed_before_step, expected_total), expected_total)
+
+    return get_downloaded_real_esrgan_exe()

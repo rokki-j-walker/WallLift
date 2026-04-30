@@ -139,6 +139,11 @@
     "assets.style_analyzer.title": "Download style analyzer",
     "assets.style_analyzer.prompt": "Style auto-analysis requires the separate WallLift style analyzer {version}. It contains the heavy AI libraries and is downloaded only when needed.\n\nDownload it into the settings folder?\n\nFolder:\n{folder}\n\nEXE:\n{path}\n\nSource:\n{url}",
     "assets.style_analyzer.downloading": "Downloading WallLift style analyzer {version} to:\n{path}",
+    "assets.ai_components.title": "Download AI components",
+    "assets.ai_components.upscale_only": "AI upscale",
+    "assets.ai_components.with_style": "AI upscale and style auto-analysis",
+    "assets.ai_components.prompt": "The “{mode}” mode needs the missing AI components to be downloaded in one flow.\n\nFolder:\n{folder}\n\nIf style auto-analysis is enabled, the CLIP model will also be downloaded. CLIP size: about {clip_size}.\n\nDownload the missing files?",
+    "assets.ai_components.downloading": "Downloading missing components for “{mode}” to:\n{folder}",
 
     "gpu.default": "0 — primary GPU / auto",
 

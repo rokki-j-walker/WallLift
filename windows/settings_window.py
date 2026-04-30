@@ -39,6 +39,7 @@ from ai_assets import (
     download_real_esrgan,
     download_style_analyzer,
     get_clip_download_size,
+    download_ai_components,
     verify_ai_assets,
     is_real_esrgan_available,
     is_clip_model_available,
@@ -76,6 +77,9 @@ class SettingsWindow(BaseMainWindow):
         self.progress_window = None
         self.processing_started = False
         self.initial_settings_snapshot = None
+        self._ai_components_check_after_id = None
+        self._ai_components_prompt_active = False
+        self._suppress_ai_component_checks = True
         self._initial_autosized = False
         self._settings_window_was_maximized = False
 
@@ -135,6 +139,7 @@ class SettingsWindow(BaseMainWindow):
         self.on_size_preset_changed(autosize=False)
         self.on_process_mode_changed(autosize=False)
         self.on_auto_style_changed()
+        self._suppress_ai_component_checks = False
 
         self.after(80, self.autosize_window)
 
@@ -1218,6 +1223,95 @@ class SettingsWindow(BaseMainWindow):
 
         return is_style_analyzer_available()
 
+    def ensure_ai_components_ready(self, include_style_analysis: bool) -> bool:
+        real_ready = is_real_esrgan_available()
+        style_ready = not include_style_analysis or is_style_analyzer_available()
+        clip_ready = not include_style_analysis or is_clip_model_available()
+
+        if real_ready and style_ready and clip_ready:
+            return True
+
+        answer = messagebox.askyesno(
+            self.t("assets.ai_components.title"),
+            self.t(
+                "assets.ai_components.prompt",
+                mode=self.t("assets.ai_components.with_style")
+                if include_style_analysis
+                else self.t("assets.ai_components.upscale_only"),
+                folder=get_real_esrgan_tool_dir().parent,
+                clip_size=AssetDownloadDialog.format_bytes(get_clip_download_size()),
+            ),
+            parent=self,
+        )
+        if not answer:
+            return False
+
+        dialog = AssetDownloadDialog(
+            self,
+            self.t("assets.ai_components.title"),
+            self.t(
+                "assets.ai_components.downloading",
+                mode=self.t("assets.ai_components.with_style")
+                if include_style_analysis
+                else self.t("assets.ai_components.upscale_only"),
+                folder=get_real_esrgan_tool_dir().parent,
+            ),
+            lambda progress: download_ai_components(include_style_analysis, progress),
+        )
+        self.wait_window(dialog)
+
+        if dialog.error:
+            messagebox.showerror(
+                self.t("common.error"),
+                self.t("assets.download.failed", error=dialog.error),
+                parent=self,
+            )
+            return False
+
+        real_ready = is_real_esrgan_available()
+        style_ready = not include_style_analysis or is_style_analyzer_available()
+        clip_ready = not include_style_analysis or is_clip_model_available()
+
+        if real_ready:
+            self.refresh_gpu_options()
+
+        return real_ready and style_ready and clip_ready
+
+    def schedule_ai_components_check(self):
+        if self._suppress_ai_component_checks:
+            return
+
+        if self.process_mode_var.get() != "ai" or self._ai_components_prompt_active:
+            return
+
+        if self._ai_components_check_after_id is not None:
+            try:
+                self.after_cancel(self._ai_components_check_after_id)
+            except Exception:
+                pass
+
+        self._ai_components_check_after_id = self.after(160, self.check_ai_components_after_selection)
+
+    def check_ai_components_after_selection(self):
+        self._ai_components_check_after_id = None
+
+        if self.process_mode_var.get() != "ai" or self._ai_components_prompt_active:
+            return
+
+        include_style_analysis = self.auto_style_analysis_var.get()
+        real_ready = is_real_esrgan_available()
+        style_ready = not include_style_analysis or is_style_analyzer_available()
+        clip_ready = not include_style_analysis or is_clip_model_available()
+
+        if real_ready and style_ready and clip_ready:
+            return
+
+        self._ai_components_prompt_active = True
+        try:
+            self.ensure_ai_components_ready(include_style_analysis)
+        finally:
+            self._ai_components_prompt_active = False
+
     def make_settings(self):
         try:
             min_width = int(self.min_width_var.get())
@@ -1248,15 +1342,10 @@ class SettingsWindow(BaseMainWindow):
         use_threads = mode == "threads"
 
         if use_ai:
-            if not self.ensure_real_esrgan_ready():
+            include_style_analysis = self.auto_style_analysis_var.get()
+            if not self.ensure_ai_components_ready(include_style_analysis):
                 return None
             ai_exe_path = str(get_downloaded_real_esrgan_exe())
-
-            if self.auto_style_analysis_var.get():
-                if not self.ensure_style_analyzer_ready():
-                    return None
-                if not self.ensure_clip_model_ready():
-                    return None
         else:
             ai_exe_path = ""
 
@@ -1390,6 +1479,9 @@ class SettingsWindow(BaseMainWindow):
             else:
                 self.ai_settings_button.configure(state="disabled")
 
+        if autosize and mode == "ai":
+            self.schedule_ai_components_check()
+
     def on_auto_style_changed(self):
         if not hasattr(self, "ai_model_menu"):
             return
@@ -1398,6 +1490,9 @@ class SettingsWindow(BaseMainWindow):
             self.ai_model_menu.configure(state="disabled")
         else:
             self.ai_model_menu.configure(state="normal")
+
+        if self.process_mode_var.get() == "ai" and self.auto_style_analysis_var.get():
+            self.schedule_ai_components_check()
 
     def on_source_mode_changed(self):
         if self.get_source_mode() == "files":
