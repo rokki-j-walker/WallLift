@@ -51,18 +51,18 @@ class CustomMessageDialog(BaseDialog):
 
         buttons_frame = ctk.CTkFrame(frame, fg_color="transparent")
         buttons_frame.grid(row=2, column=0, sticky="ew", padx=18, pady=(0, 18))
-        buttons_frame.grid_columnconfigure(0, weight=1)
 
-        for index, label in enumerate(self.buttons, start=1):
+        for index, label in enumerate(self.buttons):
+            is_primary = index == 0
             ctk.CTkButton(
                 buttons_frame,
                 text=label,
                 width=120,
                 command=lambda value=label: self.finish(value),
-                fg_color="transparent" if index < len(self.buttons) else None,
-                border_width=1 if index < len(self.buttons) else 0,
-                text_color=("gray10", "gray90") if index < len(self.buttons) else None,
-            ).grid(row=0, column=index, sticky="e", padx=(8, 0))
+                fg_color=None if is_primary else "transparent",
+                border_width=0 if is_primary else 1,
+                text_color=None if is_primary else ("gray10", "gray90"),
+            ).grid(row=0, column=index, sticky="w", padx=(0, 8))
 
     def finish(self, value: str):
         self.result = value
@@ -80,7 +80,7 @@ def show_message(parent, title: str, message: str, kind: str = "info") -> str | 
 
 
 def ask_yes_no(parent, title: str, message: str) -> bool:
-    dialog = CustomMessageDialog(parent, title=title, message=message, kind="question", buttons=("No", "Yes"))
+    dialog = CustomMessageDialog(parent, title=title, message=message, kind="question", buttons=("Yes", "No"))
     parent.wait_window(dialog)
     return dialog.result == "Yes"
 
@@ -91,7 +91,7 @@ def ask_yes_no_cancel(parent, title: str, message: str) -> bool | None:
         title=title,
         message=message,
         kind="question",
-        buttons=("Cancel", "No", "Yes"),
+        buttons=("Yes", "No", "Cancel"),
     )
     parent.wait_window(dialog)
     if dialog.result == "Yes":

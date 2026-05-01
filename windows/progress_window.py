@@ -155,7 +155,7 @@ class ProgressWindow(BaseToplevelWindow):
         self.current_bar.set(0)
 
         self.advanced_frame = ctk.CTkFrame(content)
-        self.advanced_frame.grid(row=9, column=0, sticky="ew", padx=16, pady=(0, 16))
+        self.advanced_frame.grid(row=9, column=0, sticky="nsew", padx=16, pady=(0, 16))
         self.advanced_frame.grid_columnconfigure(0, weight=1, uniform="stats")
         self.advanced_frame.grid_columnconfigure(1, weight=1, uniform="stats")
         self.advanced_frame.grid_columnconfigure(2, weight=1, uniform="stats")
@@ -214,32 +214,47 @@ class ProgressWindow(BaseToplevelWindow):
         copied_frame = ctk.CTkFrame(parent, corner_radius=10)
         copied_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 6), pady=0)
         copied_frame.grid_columnconfigure(0, weight=1)
+        copied_frame.grid_rowconfigure(1, weight=1)
 
         processed_frame = ctk.CTkFrame(parent, corner_radius=10)
         processed_frame.grid(row=0, column=1, sticky="nsew", padx=6, pady=0)
         processed_frame.grid_columnconfigure(0, weight=1)
+        processed_frame.grid_rowconfigure(1, weight=1)
 
         error_frame = ctk.CTkFrame(parent, corner_radius=10)
         error_frame.grid(row=0, column=2, sticky="nsew", padx=(6, 0), pady=0)
         error_frame.grid_columnconfigure(0, weight=1)
+        error_frame.grid_rowconfigure(1, weight=1)
 
         ctk.CTkLabel(
             copied_frame,
             textvariable=self.copied_counter_var,
             font=ctk.CTkFont(size=14, weight="bold"),
-        ).grid(row=0, column=0, sticky="w", padx=14, pady=14)
+        ).grid(row=0, column=0, sticky="w", padx=14, pady=(12, 6))
+
+        self.copied_box = ctk.CTkTextbox(copied_frame, height=120, width=220, fg_color=("gray88", "gray18"))
+        self.copied_box.grid(row=1, column=0, sticky="nsew", padx=12, pady=(0, 12))
+        self.copied_box.configure(state="disabled")
 
         ctk.CTkLabel(
             processed_frame,
             textvariable=self.processed_counter_var,
             font=ctk.CTkFont(size=14, weight="bold"),
-        ).grid(row=0, column=0, sticky="w", padx=14, pady=14)
+        ).grid(row=0, column=0, sticky="w", padx=14, pady=(12, 6))
+
+        self.processed_box = ctk.CTkTextbox(processed_frame, height=120, width=220, fg_color=("gray88", "gray18"))
+        self.processed_box.grid(row=1, column=0, sticky="nsew", padx=12, pady=(0, 12))
+        self.processed_box.configure(state="disabled")
 
         ctk.CTkLabel(
             error_frame,
             textvariable=self.error_counter_var,
             font=ctk.CTkFont(size=14, weight="bold"),
-        ).grid(row=0, column=0, sticky="w", padx=14, pady=14)
+        ).grid(row=0, column=0, sticky="w", padx=14, pady=(12, 6))
+
+        self.error_box = ctk.CTkTextbox(error_frame, height=120, width=220, fg_color=("gray88", "gray18"))
+        self.error_box.grid(row=1, column=0, sticky="nsew", padx=12, pady=(0, 12))
+        self.error_box.configure(state="disabled")
 
     # =========================
     # Processing
