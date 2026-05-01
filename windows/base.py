@@ -1,5 +1,3 @@
-from tkinter import messagebox
-
 import customtkinter as ctk
 
 
@@ -109,4 +107,30 @@ class BaseDialog(BaseToplevelWindow):
         except Exception:
             pass
 
-        messagebox.showerror(title, message)
+        dialog = ctk.CTkToplevel(self.parent_window)
+        dialog.title(title)
+        dialog.transient(self.parent_window)
+        dialog.resizable(False, False)
+        dialog.grid_columnconfigure(0, weight=1)
+
+        frame = ctk.CTkFrame(dialog, corner_radius=12)
+        frame.grid(row=0, column=0, sticky="nsew", padx=18, pady=18)
+        frame.grid_columnconfigure(0, weight=1)
+
+        ctk.CTkLabel(frame, text=title, font=ctk.CTkFont(size=18, weight="bold"), anchor="w").grid(
+            row=0, column=0, sticky="ew", padx=18, pady=(18, 8)
+        )
+        ctk.CTkLabel(frame, text=message, anchor="w", justify="left", wraplength=440).grid(
+            row=1, column=0, sticky="ew", padx=18, pady=(0, 18)
+        )
+        ctk.CTkButton(frame, text="OK", width=120, command=dialog.destroy).grid(
+            row=2, column=0, sticky="e", padx=18, pady=(0, 18)
+        )
+        dialog.update_idletasks()
+        width = 520
+        height = max(220, dialog.winfo_reqheight() + 24)
+        x = max(0, int(self.parent_window.winfo_x() + (self.parent_window.winfo_width() - width) / 2))
+        y = max(0, int(self.parent_window.winfo_y() + (self.parent_window.winfo_height() - height) / 2))
+        dialog.geometry(f"{width}x{height}+{x}+{y}")
+        dialog.lift()
+        dialog.focus_force()

@@ -51,6 +51,7 @@ class StyleAnalyzer:
             fallback_model,
             "--output",
             str(output_path),
+            "--headless",
         ]
 
         try:

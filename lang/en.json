@@ -205,6 +205,7 @@
     "processor.copying_unchanged": "Copying unchanged...",
     "processor.copied_unchanged": "Copied unchanged",
     "processor.ai_upscale": "Real-ESRGAN AI upscale...",
+    "processor.analyzing_style": "Analyzing image style...",
     "processor.final_resize": "Final resize to {width}x{height}...",
     "processor.saving_jpg": "Saving JPG...",
     "processor.saving_image": "Saving {format}...",

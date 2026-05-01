@@ -406,6 +406,7 @@ class ImageProcessor:
             return self.settings.ai_model
 
         try:
+            self.notify_current_progress(42, self.t("processor.analyzing_style"))
             model = self.style_analyzer.choose_model_for_image(file_path, self.settings.ai_model)
             self.notify_current_progress(43, self.t("processor.auto_model", model=model))
             return model

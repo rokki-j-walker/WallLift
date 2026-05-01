@@ -1,12 +1,9 @@
 import argparse
 import json
-import queue
 import sys
-import threading
 import traceback
 from pathlib import Path
 
-import customtkinter as ctk
 from PIL import Image, ImageOps
 
 
@@ -78,6 +75,7 @@ def main() -> int:
     parser.add_argument("--model-dir", required=True)
     parser.add_argument("--fallback-model", required=True)
     parser.add_argument("--output")
+    parser.add_argument("--headless", action="store_true")
     args = parser.parse_args()
 
     image_path = Path(args.image)
@@ -85,7 +83,7 @@ def main() -> int:
     fallback_model = args.fallback_model
     output_path = Path(args.output) if args.output else None
 
-    result = run_with_progress_window(image_path, model_dir, fallback_model)
+    result = analyze_image(image_path, model_dir, fallback_model)
     result_json = json.dumps(result, ensure_ascii=False)
 
     if output_path:
@@ -110,83 +108,6 @@ def analyze_image(image_path: Path, model_dir: Path, fallback_model: str) -> dic
             "model": model,
             "error": traceback.format_exc(),
         }
-
-
-def run_with_progress_window(image_path: Path, model_dir: Path, fallback_model: str) -> dict:
-    results: queue.Queue[dict] = queue.Queue(maxsize=1)
-
-    def worker():
-        results.put(analyze_image(image_path, model_dir, fallback_model))
-
-    ctk.set_appearance_mode("system")
-    ctk.set_default_color_theme("blue")
-
-    root = ctk.CTk()
-    root.title("WallLift")
-    root.resizable(False, False)
-
-    width = 520
-    height = 190
-    screen_width = root.winfo_screenwidth()
-    screen_height = root.winfo_screenheight()
-    x = max(0, int((screen_width - width) / 2))
-    y = max(0, int((screen_height - height) / 2))
-    root.geometry(f"{width}x{height}+{x}+{y}")
-
-    frame = ctk.CTkFrame(root, corner_radius=10)
-    frame.pack(fill="both", expand=True, padx=18, pady=18)
-
-    title = ctk.CTkLabel(
-        frame,
-        text="Идет анализ файла",
-        font=ctk.CTkFont(size=18, weight="bold"),
-        anchor="w",
-    )
-    title.pack(fill="x", padx=18, pady=(18, 4))
-
-    filename = ctk.CTkLabel(
-        frame,
-        text=image_path.name,
-        anchor="w",
-        justify="left",
-        wraplength=450,
-    )
-    filename.pack(fill="x", padx=18, pady=(0, 16))
-
-    progress = ctk.CTkProgressBar(frame, mode="indeterminate")
-    progress.pack(fill="x", padx=18, pady=(0, 12))
-    progress.start()
-
-    status = ctk.CTkLabel(frame, text="Подбираем модель изображения...", anchor="w")
-    status.pack(fill="x", padx=18, pady=(0, 18))
-
-    thread = threading.Thread(target=worker, daemon=True)
-    thread.start()
-
-    def poll_result():
-        try:
-            result = results.get_nowait()
-        except queue.Empty:
-            root.after(120, poll_result)
-            return
-
-        root.result = result
-        progress.stop()
-        root.destroy()
-
-    root.after(120, poll_result)
-    root.mainloop()
-
-    return getattr(root, "result", choose_model_by_filename_payload(image_path, fallback_model))
-
-
-def choose_model_by_filename_payload(image_path: Path, fallback_model: str) -> dict:
-    return {
-        "ok": False,
-        "style": "",
-        "model": choose_model_by_filename(image_path, fallback_model),
-        "error": "Style analysis window was closed before completion.",
-    }
 
 
 if __name__ == "__main__":

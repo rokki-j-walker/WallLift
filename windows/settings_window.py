@@ -1,7 +1,7 @@
 import os
 import subprocess
 from pathlib import Path
-from tkinter import filedialog, messagebox
+from tkinter import filedialog
 
 import customtkinter as ctk
 
@@ -59,6 +59,7 @@ from ui_icons import get_icon, get_logo
 from ui_helpers import attach_tooltip
 from update_checker import download_update_installer, fetch_latest_update
 from windows.base import BaseDialog, BaseMainWindow
+from windows.custom_dialogs import ask_yes_no, ask_yes_no_cancel, show_message
 from windows.progress_window import ProgressWindow
 from windows.settings_dialogs import AiDialog, AssetDownloadDialog, ThemeDialog
 
@@ -286,9 +287,11 @@ class SettingsWindow(BaseMainWindow):
             self.initial_settings_snapshot = self.collect_settings_for_json()
             return True
         except Exception as exc:
-            messagebox.showwarning(
+            show_message(
+                self,
                 self.t("settings.dialog.save_warning"),
                 self.t("settings.dialog.save_warning_message", error=exc),
+                kind="warning",
             )
             return False
 
@@ -1035,13 +1038,13 @@ class SettingsWindow(BaseMainWindow):
     def open_selected_folder(self):
         folder = Path(self.folder_path_var.get().strip())
         if not folder.exists() or not folder.is_dir():
-            messagebox.showerror(self.t("common.error"), self.t("settings.dialog.folder_not_found"))
+            show_message(self, self.t("common.error"), self.t("settings.dialog.folder_not_found"), kind="error")
             return
 
         try:
             os.startfile(folder)
         except Exception as exc:
-            messagebox.showerror(self.t("common.error"), self.t("settings.dialog.open_folder_error", error=exc))
+            show_message(self, self.t("common.error"), self.t("settings.dialog.open_folder_error", error=exc), kind="error")
 
     def open_design_dialog(self):
         ThemeDialog(self)
@@ -1050,22 +1053,25 @@ class SettingsWindow(BaseMainWindow):
         try:
             update = fetch_latest_update()
         except Exception as exc:
-            messagebox.showerror(
+            show_message(
+                self,
                 self.t("common.error"),
                 self.t("settings.update.check_failed", error=exc),
-                parent=self,
+                kind="error",
             )
             return
 
         if update is None:
-            messagebox.showinfo(
+            show_message(
+                self,
                 self.t("settings.update.title"),
                 self.t("settings.update.none", version=APP_VERSION),
-                parent=self,
+                kind="info",
             )
             return
 
-        answer = messagebox.askyesno(
+        answer = ask_yes_no(
+            self,
             self.t("settings.update.title"),
             self.t(
                 "settings.update.found",
@@ -1073,7 +1079,6 @@ class SettingsWindow(BaseMainWindow):
                 latest=update.version,
                 size=AssetDownloadDialog.format_bytes(update.size),
             ),
-            parent=self,
         )
         if not answer:
             return
@@ -1087,20 +1092,22 @@ class SettingsWindow(BaseMainWindow):
         self.wait_window(dialog)
 
         if dialog.error:
-            messagebox.showerror(
+            show_message(
+                self,
                 self.t("common.error"),
                 self.t("settings.update.download_failed", error=dialog.error),
-                parent=self,
+                kind="error",
             )
             return
 
         try:
             subprocess.Popen([str(dialog.result)], close_fds=True)
         except Exception as exc:
-            messagebox.showerror(
+            show_message(
+                self,
                 self.t("common.error"),
                 self.t("settings.update.launch_failed", error=exc),
-                parent=self,
+                kind="error",
             )
             return
 
@@ -1113,16 +1120,18 @@ class SettingsWindow(BaseMainWindow):
         ok, messages = verify_ai_assets()
         report = "\n".join(messages) if messages else self.t("assets.verify.no_assets")
         if ok:
-            messagebox.showinfo(
+            show_message(
+                self,
                 self.t("assets.verify.title"),
                 self.t("assets.verify.success", report=report),
-                parent=self,
+                kind="info",
             )
         else:
-            messagebox.showwarning(
+            show_message(
+                self,
                 self.t("assets.verify.title"),
                 self.t("assets.verify.failed", report=report),
-                parent=self,
+                kind="warning",
             )
 
     def start_processing(self):
@@ -1134,11 +1143,11 @@ class SettingsWindow(BaseMainWindow):
             source_dir = selected_files[0].parent
 
         if source_mode == "files" and not selected_files:
-            messagebox.showerror(self.t("common.error"), self.t("settings.dialog.select_files"))
+            show_message(self, self.t("common.error"), self.t("settings.dialog.select_files"), kind="error")
             return
 
         if source_mode == "folder" and (not source_dir.exists() or not source_dir.is_dir()):
-            messagebox.showerror(self.t("common.error"), self.t("settings.dialog.select_valid_folder"))
+            show_message(self, self.t("common.error"), self.t("settings.dialog.select_valid_folder"), kind="error")
             return
 
         settings = self.make_settings()
@@ -1196,7 +1205,8 @@ class SettingsWindow(BaseMainWindow):
             return True
 
         target_path = get_downloaded_real_esrgan_exe()
-        answer = messagebox.askyesno(
+        answer = ask_yes_no(
+            self,
             self.t("assets.realesrgan.title"),
             self.t(
                 "assets.realesrgan.prompt",
@@ -1205,7 +1215,6 @@ class SettingsWindow(BaseMainWindow):
                 path=target_path,
                 folder=get_real_esrgan_tool_dir(),
             ),
-            parent=self,
         )
         if not answer:
             return False
@@ -1224,10 +1233,11 @@ class SettingsWindow(BaseMainWindow):
         self.wait_window(dialog)
 
         if dialog.error:
-            messagebox.showerror(
+            show_message(
+                self,
                 self.t("common.error"),
                 self.t("assets.download.failed", error=dialog.error),
-                parent=self,
+                kind="error",
             )
             return False
 
@@ -1241,7 +1251,8 @@ class SettingsWindow(BaseMainWindow):
             return True
 
         model_dir = get_clip_model_dir()
-        answer = messagebox.askyesno(
+        answer = ask_yes_no(
+            self,
             self.t("assets.clip.title"),
             self.t(
                 "assets.clip.prompt",
@@ -1249,7 +1260,6 @@ class SettingsWindow(BaseMainWindow):
                 size=AssetDownloadDialog.format_bytes(get_clip_download_size()),
                 path=model_dir,
             ),
-            parent=self,
         )
         if not answer:
             return False
@@ -1263,10 +1273,11 @@ class SettingsWindow(BaseMainWindow):
         self.wait_window(dialog)
 
         if dialog.error:
-            messagebox.showerror(
+            show_message(
+                self,
                 self.t("common.error"),
                 self.t("assets.download.failed", error=dialog.error),
-                parent=self,
+                kind="error",
             )
             return False
 
@@ -1277,7 +1288,8 @@ class SettingsWindow(BaseMainWindow):
             return True
 
         helper_dir = get_style_analyzer_dir()
-        answer = messagebox.askyesno(
+        answer = ask_yes_no(
+            self,
             self.t("assets.style_analyzer.title"),
             self.t(
                 "assets.style_analyzer.prompt",
@@ -1286,7 +1298,6 @@ class SettingsWindow(BaseMainWindow):
                 folder=helper_dir,
                 path=get_downloaded_style_analyzer_exe(),
             ),
-            parent=self,
         )
         if not answer:
             return False
@@ -1304,10 +1315,11 @@ class SettingsWindow(BaseMainWindow):
         self.wait_window(dialog)
 
         if dialog.error:
-            messagebox.showerror(
+            show_message(
+                self,
                 self.t("common.error"),
                 self.t("assets.download.failed", error=dialog.error),
-                parent=self,
+                kind="error",
             )
             return False
 
@@ -1321,7 +1333,8 @@ class SettingsWindow(BaseMainWindow):
         if real_ready and style_ready and clip_ready:
             return True
 
-        answer = messagebox.askyesno(
+        answer = ask_yes_no(
+            self,
             self.t("assets.ai_components.title"),
             self.t(
                 "assets.ai_components.prompt",
@@ -1331,7 +1344,6 @@ class SettingsWindow(BaseMainWindow):
                 folder=get_real_esrgan_tool_dir().parent,
                 clip_size=AssetDownloadDialog.format_bytes(get_clip_download_size()),
             ),
-            parent=self,
         )
         if not answer:
             return False
@@ -1351,10 +1363,11 @@ class SettingsWindow(BaseMainWindow):
         self.wait_window(dialog)
 
         if dialog.error:
-            messagebox.showerror(
+            show_message(
+                self,
                 self.t("common.error"),
                 self.t("assets.download.failed", error=dialog.error),
-                parent=self,
+                kind="error",
             )
             return False
 
@@ -1412,19 +1425,19 @@ class SettingsWindow(BaseMainWindow):
             ai_tile_size = int(self.ai_tile_size_var.get())
             ai_cooldown_seconds = float(self.ai_cooldown_var.get())
         except Exception:
-            messagebox.showerror(self.t("common.error"), self.t("settings.dialog.check_numeric"))
+            show_message(self, self.t("common.error"), self.t("settings.dialog.check_numeric"), kind="error")
             return None
 
         if min_width < 1 or min_height < 1:
-            messagebox.showerror(self.t("common.error"), self.t("settings.dialog.positive_size"))
+            show_message(self, self.t("common.error"), self.t("settings.dialog.positive_size"), kind="error")
             return None
 
         if jpeg_quality < 1 or jpeg_quality > 100:
-            messagebox.showerror(self.t("common.error"), self.t("settings.dialog.quality_range"))
+            show_message(self, self.t("common.error"), self.t("settings.dialog.quality_range"), kind="error")
             return None
 
         if max_workers < 1:
-            messagebox.showerror(self.t("common.error"), self.t("settings.dialog.workers_positive"))
+            show_message(self, self.t("common.error"), self.t("settings.dialog.workers_positive"), kind="error")
             return None
 
         mode = self.process_mode_var.get()
@@ -1464,7 +1477,8 @@ class SettingsWindow(BaseMainWindow):
         )
 
     def reset_to_defaults(self):
-        answer = messagebox.askyesno(
+        answer = ask_yes_no(
+            self,
             self.t("settings.dialog.reset_title"),
             self.t("settings.dialog.reset_message"),
         )
@@ -1520,7 +1534,8 @@ class SettingsWindow(BaseMainWindow):
             self.destroy()
             return
 
-        answer = messagebox.askyesnocancel(
+        answer = ask_yes_no_cancel(
+            self,
             self.t("settings.dialog.save_changed_title"),
             self.t("settings.dialog.save_changed_message"),
         )

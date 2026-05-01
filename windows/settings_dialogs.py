@@ -1,6 +1,5 @@
 import threading
 import traceback
-from tkinter import messagebox
 
 import customtkinter as ctk
 
@@ -15,6 +14,7 @@ from app_config import (
     AI_TILE_SIZES,
 )
 from windows.base import BaseDialog
+from windows.custom_dialogs import show_message
 
 
 class AssetDownloadDialog(BaseDialog):
@@ -197,17 +197,19 @@ class ThemeDialog(BaseDialog):
             ctk.set_default_color_theme(selected_theme.color_theme)
             clear_icon_cache()
         except Exception as exc:
-            messagebox.showerror(
+            show_message(
+                self.owner,
                 self.owner.t("common.error"),
                 self.owner.t("settings.dialog.open_dialog_error", error=exc),
-                parent=self.owner,
+                kind="error",
             )
             return
 
-        messagebox.showinfo(
+        show_message(
+            self.owner,
             self.owner.t("settings.design.saved_title"),
             self.owner.t("settings.design.saved_message"),
-            parent=self.owner,
+            kind="info",
         )
 
 

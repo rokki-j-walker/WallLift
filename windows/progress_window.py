@@ -1,6 +1,4 @@
 from pathlib import Path
-from tkinter import messagebox
-
 import customtkinter as ctk
 
 from app_models import ProcessingStats
@@ -9,6 +7,7 @@ from localization import Translator
 from ui_helpers import attach_tooltip
 from ui_icons import get_icon, get_logo
 from windows.base import BaseToplevelWindow
+from windows.custom_dialogs import ask_yes_no
 
 
 ICON_BUTTON_SIZE = 46
@@ -80,7 +79,7 @@ class ProgressWindow(BaseToplevelWindow):
         root_frame.grid_columnconfigure(0, weight=1)
         root_frame.grid_rowconfigure(0, weight=1)
 
-        content = ctk.CTkFrame(root_frame)
+        content = ctk.CTkFrame(root_frame, corner_radius=14)
         content.grid(row=0, column=0, sticky="nsew", padx=20, pady=20)
         content.grid_columnconfigure(0, weight=1)
         content.grid_rowconfigure(9, weight=1)
@@ -101,6 +100,7 @@ class ProgressWindow(BaseToplevelWindow):
             text=self.get_source_text(),
             anchor="w",
             justify="left",
+            text_color=("gray35", "gray65"),
         ).grid(row=1, column=0, sticky="ew", padx=16, pady=(0, 8))
 
         mode_text = self.t("progress.mode.ai") if self.settings.use_ai else self.t("progress.mode.pillow")
@@ -121,14 +121,20 @@ class ProgressWindow(BaseToplevelWindow):
             ),
             anchor="w",
             justify="left",
-        ).grid(row=2, column=0, sticky="ew", padx=16, pady=(0, 10))
+            text_color=("gray35", "gray65"),
+        ).grid(row=2, column=0, sticky="ew", padx=16, pady=(0, 14))
 
-        ctk.CTkLabel(content, textvariable=self.state_var, anchor="w").grid(
+        ctk.CTkLabel(
+            content,
+            textvariable=self.state_var,
+            anchor="w",
+            font=ctk.CTkFont(size=16, weight="bold"),
+        ).grid(
             row=3, column=0, sticky="ew", padx=16, pady=(0, 8)
         )
 
         if self.settings.advanced_monitoring:
-            ctk.CTkLabel(content, textvariable=self.current_file_var, anchor="w").grid(
+            ctk.CTkLabel(content, textvariable=self.current_file_var, anchor="w", text_color=("gray35", "gray65")).grid(
                 row=4, column=0, sticky="ew", padx=16, pady=(0, 10)
             )
 
@@ -149,7 +155,7 @@ class ProgressWindow(BaseToplevelWindow):
         self.current_bar.set(0)
 
         self.advanced_frame = ctk.CTkFrame(content)
-        self.advanced_frame.grid(row=9, column=0, sticky="nsew", padx=16, pady=(0, 16))
+        self.advanced_frame.grid(row=9, column=0, sticky="ew", padx=16, pady=(0, 16))
         self.advanced_frame.grid_columnconfigure(0, weight=1, uniform="stats")
         self.advanced_frame.grid_columnconfigure(1, weight=1, uniform="stats")
         self.advanced_frame.grid_columnconfigure(2, weight=1, uniform="stats")
@@ -205,50 +211,35 @@ class ProgressWindow(BaseToplevelWindow):
         )
 
     def build_advanced_monitoring(self, parent):
-        copied_frame = ctk.CTkFrame(parent)
+        copied_frame = ctk.CTkFrame(parent, corner_radius=10)
         copied_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 6), pady=0)
         copied_frame.grid_columnconfigure(0, weight=1)
-        copied_frame.grid_rowconfigure(1, weight=1)
 
-        processed_frame = ctk.CTkFrame(parent)
+        processed_frame = ctk.CTkFrame(parent, corner_radius=10)
         processed_frame.grid(row=0, column=1, sticky="nsew", padx=6, pady=0)
         processed_frame.grid_columnconfigure(0, weight=1)
-        processed_frame.grid_rowconfigure(1, weight=1)
 
-        error_frame = ctk.CTkFrame(parent)
+        error_frame = ctk.CTkFrame(parent, corner_radius=10)
         error_frame.grid(row=0, column=2, sticky="nsew", padx=(6, 0), pady=0)
         error_frame.grid_columnconfigure(0, weight=1)
-        error_frame.grid_rowconfigure(1, weight=1)
 
         ctk.CTkLabel(
             copied_frame,
             textvariable=self.copied_counter_var,
             font=ctk.CTkFont(size=14, weight="bold"),
-        ).grid(row=0, column=0, sticky="w", padx=12, pady=(10, 4))
-
-        self.copied_box = ctk.CTkTextbox(copied_frame, height=140, width=240)
-        self.copied_box.grid(row=1, column=0, sticky="nsew", padx=12, pady=(0, 12))
-        self.copied_box.configure(state="disabled")
+        ).grid(row=0, column=0, sticky="w", padx=14, pady=14)
 
         ctk.CTkLabel(
             processed_frame,
             textvariable=self.processed_counter_var,
             font=ctk.CTkFont(size=14, weight="bold"),
-        ).grid(row=0, column=0, sticky="w", padx=12, pady=(10, 4))
-
-        self.processed_box = ctk.CTkTextbox(processed_frame, height=140, width=240)
-        self.processed_box.grid(row=1, column=0, sticky="nsew", padx=12, pady=(0, 12))
-        self.processed_box.configure(state="disabled")
+        ).grid(row=0, column=0, sticky="w", padx=14, pady=14)
 
         ctk.CTkLabel(
             error_frame,
             textvariable=self.error_counter_var,
             font=ctk.CTkFont(size=14, weight="bold"),
-        ).grid(row=0, column=0, sticky="w", padx=12, pady=(10, 4))
-
-        self.error_box = ctk.CTkTextbox(error_frame, height=140, width=240)
-        self.error_box.grid(row=1, column=0, sticky="nsew", padx=12, pady=(0, 12))
-        self.error_box.configure(state="disabled")
+        ).grid(row=0, column=0, sticky="w", padx=14, pady=14)
 
     # =========================
     # Processing
@@ -304,7 +295,8 @@ class ProgressWindow(BaseToplevelWindow):
         if not self.processor or self.processing_finished:
             return
 
-        answer = messagebox.askyesno(
+        answer = ask_yes_no(
+            self,
             self.t("progress.cancel_title"),
             self.t("progress.cancel_message"),
         )
@@ -350,7 +342,7 @@ class ProgressWindow(BaseToplevelWindow):
     def on_file_copied(self, filename: str):
         def _update():
             self.copied_files.append(filename)
-            if self.settings.advanced_monitoring:
+            if self.settings.advanced_monitoring and hasattr(self, "copied_box"):
                 self.append_textbox(self.copied_box, filename)
             self.update_counters(self.get_total_count())
 
@@ -359,7 +351,7 @@ class ProgressWindow(BaseToplevelWindow):
     def on_file_processed(self, filename: str):
         def _update():
             self.processed_files.append(filename)
-            if self.settings.advanced_monitoring:
+            if self.settings.advanced_monitoring and hasattr(self, "processed_box"):
                 self.append_textbox(self.processed_box, filename)
             self.update_counters(self.get_total_count())
 
@@ -368,7 +360,7 @@ class ProgressWindow(BaseToplevelWindow):
     def on_file_error(self, filename: str, error: str = ""):
         def _update():
             self.error_files.append(filename)
-            if self.settings.advanced_monitoring:
+            if self.settings.advanced_monitoring and hasattr(self, "error_box"):
                 short = filename if not error else self.t("progress.file_error_short", filename=filename)
                 self.append_textbox(self.error_box, short)
             self.update_counters(self.get_total_count())
@@ -441,7 +433,8 @@ class ProgressWindow(BaseToplevelWindow):
             self.close_all()
             return
 
-        answer = messagebox.askyesno(
+        answer = ask_yes_no(
+            self,
             self.t("progress.close_title"),
             self.t("progress.close_message"),
         )
