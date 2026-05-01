@@ -4,7 +4,7 @@ $ProjectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 
 Set-Location -Path $ProjectRoot
 
-$Version = "0.1.3"
+$Version = "0.1.4"
 $AppName = "WallLift"
 $DistDir = Join-Path $ProjectRoot "dist\$AppName"
 $ArchivePath = Join-Path $ProjectRoot "dist\$AppName-$Version-windows-x64.zip"

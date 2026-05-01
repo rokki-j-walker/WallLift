@@ -1,5 +1,5 @@
 #define MyAppName "WallLift"
-#define MyAppVersion "0.1.3"
+#define MyAppVersion "0.1.4"
 #define MyAppPublisher "WallLift"
 #define MyAppExeName "WallLift.exe"
 
