@@ -6,7 +6,7 @@ from pathlib import Path
 OLD_APP_NAME = "ImageSizer"
 APP_NAME = "WallLift"
 DISPLAY_NAME = "WallLift"
-APP_VERSION = "0.1.3"
+APP_VERSION = "0.1.4"
 BASE_DIR = Path(sys.executable).resolve().parent if getattr(sys, "frozen", False) else Path(__file__).resolve().parent
 GITHUB_REPO = "rokki-j-walker/WallLift"
 GITHUB_RELEASES_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
