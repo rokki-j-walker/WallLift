@@ -283,7 +283,10 @@ def download_real_esrgan(progress_callback=None) -> Path:
 
     def _models_progress(done: int, total: int):
         if progress_callback:
-            progress_callback(total + done if total else done, total * 2 if total else 0)
+            runtime_size = runtime_archive_path.stat().st_size if runtime_archive_path.is_file() else 0
+            models_total = total if total and total > 0 else 0
+            combined_total = runtime_size + (models_total if models_total > 0 else max(done, 1))
+            progress_callback(runtime_size + done, combined_total)
 
     download_file(REAL_ESRGAN_MODELS_DOWNLOAD_URL, models_archive_path, _models_progress)
     verify_zip_archive(models_archive_path)

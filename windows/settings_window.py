@@ -190,6 +190,7 @@ class SettingsWindow(BaseMainWindow):
 
         self.loaded_settings["language"] = self.language_code
         self.save_current_settings_if_needed(force=True)
+        self.initial_settings_snapshot = self.collect_settings_for_json()
 
     def choose_language_on_first_launch(self) -> str:
         selected = {"code": normalize_language_code(None)}

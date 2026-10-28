@@ -1,4 +1,5 @@
 import math
+import os
 import shutil
 import subprocess
 import tempfile
@@ -249,8 +250,12 @@ class ImageProcessor:
 
     def safe_process_one_image(self, file_path: Path, ui_enabled: bool = False) -> ProcessResult:
         try:
+            if self.cancel_event.is_set():
+                return ProcessResult(status="cancelled")
             return self.process_one_image(file_path, ui_enabled=ui_enabled)
         except Exception:
+            if self.cancel_event.is_set():
+                return ProcessResult(status="cancelled")
             return ProcessResult(status="error", error=traceback.format_exc())
 
     def apply_result(self, file_path: Path, result: ProcessResult):
@@ -424,7 +429,7 @@ class ImageProcessor:
         try:
             input_for_ai = file_path
 
-            if file_path.suffix.lower() not in {".jpg", ".jpeg", ".png", ".webp"}:
+            if file_path.suffix.lower() not in {".jpg", ".jpeg", ".png"}:
                 input_for_ai = temp_dir / "input.png"
                 with Image.open(file_path) as img:
                     img = ImageOps.exif_transpose(img)
@@ -483,11 +488,20 @@ class ImageProcessor:
                     )
                 )
 
-            final_temp_output = Path(tempfile.mkstemp(suffix=".png", prefix="ai_result_")[1])
+            _fd, _tmp = tempfile.mkstemp(suffix=".png", prefix="ai_result_")
+            try:
+                os.close(_fd)
+            except Exception:
+                pass
+            final_temp_output = Path(_tmp)
             shutil.copy2(output_from_ai, final_temp_output)
 
             if self.settings.ai_cooldown_seconds > 0:
-                time.sleep(float(self.settings.ai_cooldown_seconds))
+                remaining = float(self.settings.ai_cooldown_seconds)
+                while remaining > 0 and not self.cancel_event.is_set():
+                    step = min(remaining, 0.1)
+                    time.sleep(step)
+                    remaining -= step
 
             return final_temp_output
 
@@ -530,9 +544,15 @@ class ImageProcessor:
         if img.mode in ("RGB", "RGBA"):
             return img
 
+        if img.mode == "LA":
+            return img.convert("RGBA")
+
         if img.mode == "P":
             if "transparency" in img.info:
                 return img.convert("RGBA")
+            return img.convert("RGB")
+
+        if img.mode == "I":
             return img.convert("RGB")
 
         return img.convert("RGB")
@@ -543,6 +563,8 @@ class ImageProcessor:
             source_format = source_file.suffix.lower().lstrip(".")
             if source_format == "jpeg":
                 return "jpg"
+            if source_format == "tif":
+                return "tiff"
             if source_format in OUTPUT_FORMATS and source_format != "keep":
                 return source_format
             return "jpg"
@@ -554,6 +576,8 @@ class ImageProcessor:
     def get_output_extension(source_file: Path, output_format: str) -> str:
         if output_format == "jpg" and source_file.suffix.lower() == ".jpeg":
             return ".jpeg"
+        if output_format == "tiff" and source_file.suffix.lower() == ".tiff":
+            return ".tiff"
         return ".tif" if output_format == "tiff" else f".{output_format}"
 
     def save_image(self, img: Image.Image, output_path: Path, output_format: str):
@@ -574,7 +598,10 @@ class ImageProcessor:
             return
 
         if output_format == "webp":
-            img.save(output_path, format="WEBP", quality=self.settings.jpeg_quality, method=6)
+            prepared = img
+            if prepared.mode not in ("RGB", "RGBA"):
+                prepared = prepared.convert("RGBA" if "transparency" in getattr(prepared, "info", {}) else "RGB")
+            prepared.save(output_path, format="WEBP", quality=self.settings.jpeg_quality, method=6)
             return
 
         if output_format == "bmp":

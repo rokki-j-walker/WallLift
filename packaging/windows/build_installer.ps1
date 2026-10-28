@@ -9,8 +9,8 @@ $ProjectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 Set-Location -Path $ProjectRoot
 
 $AppName = "WallLift"
-$Version = "0.1.4"
-$InnoCompiler = "C:\Program Files\utilities\Inno Setup 7\ISCC.exe"
+$Version = "0.1.5"
+$InnoCompiler = "C:\Program Files\utils\Inno Setup 7\ISCC.exe"
 $AppExe = Join-Path $ProjectRoot "dist\$AppName\$AppName.exe"
 $InstallerScript = Join-Path $PSScriptRoot "installer.iss"
 $InstallerPath = Join-Path $ProjectRoot "dist\installer\$AppName-$Version-setup-windows-x64.exe"

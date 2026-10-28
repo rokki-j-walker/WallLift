@@ -40,7 +40,12 @@ class StyleAnalyzer:
             raise RuntimeError("Style analyzer helper or CLIP model is not available")
 
         helper_exe = get_downloaded_style_analyzer_exe()
-        output_path = Path(tempfile.mkstemp(suffix=".json", prefix="walllift_style_")[1])
+        _fd, _tmp = tempfile.mkstemp(suffix=".json", prefix="walllift_style_")
+        try:
+            os.close(_fd)
+        except Exception:
+            pass
+        output_path = Path(_tmp)
         cmd = [
             str(helper_exe),
             "--image",
